@@ -245,10 +245,16 @@ class Recognizer():
                 attributes[n][attr_name].append(attr_value)
         return attributes
 
-    def spot_entities(self, model, source_string, normalizer_name, include_query='', exclude_query='', process_exclude=False, attrs_out_query=''):
+    def spot_entities(self, model, source_string, normalizer_name, include_query='', exclude_query='', process_exclude=False, attrs_out_query='', progress_from=0, progress_to=100):
         # TODO: review for refactoring
         self.logger('Analyzing "%s"... ' % (source_string))
         rets = []
+        this_progress_position = 0
+        last_progress_position = 0
+        total_tries = len(model[model.DICTIONARY_KEY])
+        progress_share = progress_to - progress_from
+        trie_increment = int(progress_share / total_tries)
+        current_trie_index = 0
         for trie in model[model.DICTIONARY_KEY]:
             ret = []
             word_separator = trie[model.WORD_SEPARATOR_KEY]
@@ -260,8 +266,13 @@ class Recognizer():
             current_index = 0
             temporary_index = -1
             total_length = len(source_string)
+            increment_chars = int(total_length / progress_share) if total_length > progress_share else total_length - 1
             dictionary_specs = trie[model.SPECS_KEY]['fields'].keys()
             while current_index < total_length:
+                this_progress_position = int(current_index / increment_chars / total_tries)
+                if this_progress_position != last_progress_position:
+                    last_progress_position = this_progress_position
+                    self.push_message(int(progress_share * current_index / total_length / total_tries) + current_trie_index * trie_increment + progress_from, self.callback_progress)
                 if len(ret) > 0 and current_index < ret[-1][-1]:
                     current_index = ret[-1][-1]
                 if not reading_entity: # wait for word separator
@@ -327,6 +338,8 @@ class Recognizer():
             if model[model.KEYWORDS_KEY] is not None:
                 self.verify_keywords(model, ret, source_string, word_separator)
             rets += ret
+            current_trie_index += 1
+        self.push_message(progress_to, self.callback_progress)
         self.logger('Done.')
         return rets
 
@@ -408,12 +421,19 @@ class Recognizer():
         if attrs_out is not None and len(attrs_out) > 0:
             attrs_out_query = ' and attr_name in (\'%s\')' % ('\', \''.join([x.replace('\'', '\'\'') for x in attrs_out]))
         
+        self.push_message('Parsing text', self.callback_status)
         rets = []
+        total_normalizers = len(model[model.NORMALIZER_KEY])
+        spot_progress_share = int(100 / total_normalizers)
+        current_normalizer_index = 0
         for normalizer_name in model[model.NORMALIZER_KEY]:
             normalized_string = model[model.NORMALIZER_KEY][normalizer_name].normalize(source_string, model[model.WORD_SEPARATOR_KEY], model[model.TOKENIZER_OPTION_KEY])
             character_map = model[model.NORMALIZER_KEY][normalizer_name].result['map']
-            parsed = self.spot_entities(model, normalized_string, normalizer_name, include_query, exclude_query, process_exclude, attrs_out_query)
+            progress_from = current_normalizer_index * spot_progress_share
+            progress_to = (current_normalizer_index + 1) * spot_progress_share
+            parsed = self.spot_entities(model, normalized_string, normalizer_name, include_query, exclude_query, process_exclude, attrs_out_query, progress_from=progress_from, progress_to=progress_to)
             rets.append((character_map, parsed))
+            current_normalizer_index += 1
         
         flattened = self.flatten(rets)
         locations = self.reduce(flattened.keys())
