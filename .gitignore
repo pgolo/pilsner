@@ -1,0 +1,8 @@
+.*
+**/__pycache__/*
+build/*
+cythonized/*
+dist/*
+*.spec
+!**/.gitkeep
+!**/.gitignore
