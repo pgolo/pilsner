@@ -37,6 +37,7 @@ def load_it():
     rrr = pilsner.Recognizer(callback_status=callback_update_status, callback_progress=callback_update_mesage)
     m = pilsner.Model('.test_model')
     s = 'this is acinic cell carcinomas o carcinoma, damn it'
+    s *= 10
     q = rrr.parse(m, s, attrs_where={'+': {'smth': {'D', 'A'}}}, attrs_out=['MSID', 'smth'])
     print(q)
 
