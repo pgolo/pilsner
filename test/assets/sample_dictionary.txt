@@ -1,0 +1,7 @@
+tokenizer1	entity2	acinic cell carcinomas	C,D,E
+tokenizer1	entity2	acinic cell carcinomax	D,E
+tokenizer2	entity1	acinic cell carcinomas	A,B,C
+tokenizer1	entity1	acinic cell carcinoma	A,B,C
+tokenizer2	entity1	afinic cell carcinoma	A,B,C
+tokenizer2	entity1	it	A,B,C
+tokenizer2	entity1	o	A,B,C
