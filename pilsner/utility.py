@@ -3,9 +3,7 @@ import os
 
 class Recognizer():
 
-    PERMANENT_STORAGE = ''
-
-    def __init__(self, debug_mode=False, verbose_mode=False, callback_status=None, callback_progress=None, permanent_storage=''):
+    def __init__(self, debug_mode=False, verbose_mode=False, callback_status=None, callback_progress=None):
         logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s')
         self.debug = debug_mode
         self.verbose = verbose_mode
@@ -17,7 +15,6 @@ class Recognizer():
             self.logger('Debug mode is on')
         self.callback_status = callback_status
         self.callback_progress = callback_progress
-        self.PERMANENT_STORAGE = permanent_storage
         logging.debug('Recognizer class has been initialized')
 
     def __del__(self):
