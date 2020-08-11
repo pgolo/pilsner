@@ -1,13 +1,11 @@
 import logging
-import sqlite3
 import os
 
 class Recognizer():
 
-    OPERATIONAL_STORAGE = ''
     PERMANENT_STORAGE = ''
 
-    def __init__(self, debug_mode=False, verbose_mode=False, callback_status=None, callback_progress=None, permanent_storage='', operational_storage=':memory:'):
+    def __init__(self, debug_mode=False, verbose_mode=False, callback_status=None, callback_progress=None, permanent_storage=''):
         logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s')
         self.debug = debug_mode
         self.verbose = verbose_mode
@@ -20,20 +18,11 @@ class Recognizer():
         self.callback_status = callback_status
         self.callback_progress = callback_progress
         self.PERMANENT_STORAGE = permanent_storage
-        self.OPERATIONAL_STORAGE = operational_storage
-        self.o_connection = sqlite3.connect(self.OPERATIONAL_STORAGE)
-        self.o_cursor = self.o_connection.cursor()
-        self.o_cursor.execute('create table if not exists flatten (l integer, r integer, attr_name text, attr_value text);')
-        self.o_cursor.execute('delete from flatten;')
-        self.o_connection.commit()
         logging.debug('Recognizer class has been initialized')
 
     def __del__(self):
         # remove all temporary resources
-        self.o_connection.close()
-        if os.path.exists(self.OPERATIONAL_STORAGE):
-            os.remove(self.OPERATIONAL_STORAGE)
-
+        pass
     def push_message(self, message, callback_function):
         if callback_function is not None:
             callback_function(message)
@@ -344,9 +333,11 @@ class Recognizer():
         return rets
 
     def flatten(self, layers):
+        # TODO: prettify this
+        #print(layers)
+        #exit(0)
         ret = {}
-        self.o_cursor.execute('delete from flatten;')
-        self.o_connection.commit()
+        qwe = []
         for layer in layers:
             _map = layer[0]
             _recognized = layer[1]
@@ -356,8 +347,15 @@ class Recognizer():
                     _attrs = _content[_id]
                     for _attr_name in _attrs:
                         for _attr_value in _attrs[_attr_name]:
-                            self.o_cursor.execute('insert into flatten (l, r, attr_name, attr_value) select ?, ?, ?, ?;', (_left, _right, _attr_name, _attr_value))
-        rows = self.o_cursor.execute('select f1.l, f1.r, f1.attr_name, f1.attr_value from flatten f1 where not exists (select f2.* from flatten f2 where (f2.l <= f1.l and f2.r > f1.r) or (f2.l < f1.l and f2.r >= f1.r)) order by f1.l asc, f1.r asc;')
+                            qwe.append(tuple([_left, _right, _attr_name, _attr_value]))
+        qwes = sorted(sorted(qwe, key=lambda x: -x[1]), key=lambda x: x[0])
+        rows = [qwes[0]]
+        for i in range(1, len(qwes)):
+            q = qwes[i]
+            if (rows[-1][0] <= q[0] < rows[-1][1] and rows[-1][0] < q[1] < rows[-1][1]) or (rows[-1][0] < q[0] < rows[-1][1] and rows[-1][0] < q[1] <= rows[-1][1]):
+                continue
+            rows.append(q)
+        #rows = qwes
         for row in rows:
             _location, _attr_name, _attr_value = tuple([int(row[0]), int(row[1])]), str(row[2]), str(row[3])
             if _location not in ret:
