@@ -20,6 +20,7 @@ class Recognizer():
     def __del__(self):
         # remove all temporary resources
         pass
+
     def push_message(self, message, callback_function):
         if callback_function is not None:
             callback_function(message)
@@ -205,7 +206,6 @@ class Recognizer():
 
     def attribute_unpacker(self, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
         attributes = {}
-
         include = set()
         exclude = set()
         for n in leaf_ids:
@@ -217,9 +217,7 @@ class Recognizer():
                 rows = cur.execute('select distinct n from attrs where n = %d %s;' % (n, exclude_query))
                 for row in rows:
                     exclude.add(int(row[0]))
-        
         ns = include - exclude
-
         for n in ns:
             rows = cur.execute('select attr_name, attr_value from attrs where n = %d%s;' % (n, attrs_out_query))
             if n not in attributes:
@@ -330,11 +328,8 @@ class Recognizer():
         return rets
 
     def flatten(self, layers):
-        # TODO: prettify this
-        #print(layers)
-        #exit(0)
         ret = {}
-        qwe = []
+        all_entries = []
         for layer in layers:
             _map = layer[0]
             _recognized = layer[1]
@@ -344,17 +339,16 @@ class Recognizer():
                     _attrs = _content[_id]
                     for _attr_name in _attrs:
                         for _attr_value in _attrs[_attr_name]:
-                            qwe.append(tuple([_left, _right, _attr_name, _attr_value]))
-        qwes = sorted(sorted(qwe, key=lambda x: -x[1]), key=lambda x: x[0])
-        rows = [qwes[0]]
-        for i in range(1, len(qwes)):
-            q = qwes[i]
-            if (rows[-1][0] <= q[0] < rows[-1][1] and rows[-1][0] < q[1] < rows[-1][1]) or (rows[-1][0] < q[0] < rows[-1][1] and rows[-1][0] < q[1] <= rows[-1][1]):
+                            all_entries.append(tuple([_left, _right, _attr_name, _attr_value]))
+        all_entries = sorted(sorted(all_entries, key=lambda x: -x[1]), key=lambda x: x[0])
+        filtered_entries = [all_entries[0]]
+        for i in range(1, len(all_entries)):
+            q = all_entries[i]
+            if (filtered_entries[-1][0] <= q[0] < filtered_entries[-1][1] and filtered_entries[-1][0] < q[1] < filtered_entries[-1][1]) or (filtered_entries[-1][0] < q[0] < filtered_entries[-1][1] and filtered_entries[-1][0] < q[1] <= filtered_entries[-1][1]):
                 continue
-            rows.append(q)
-        #rows = qwes
-        for row in rows:
-            _location, _attr_name, _attr_value = tuple([int(row[0]), int(row[1])]), str(row[2]), str(row[3])
+            filtered_entries.append(q)
+        for entry in filtered_entries:
+            _location, _attr_name, _attr_value = tuple([int(entry[0]), int(entry[1])]), str(entry[2]), str(entry[3])
             if _location not in ret:
                 ret[_location] = {}
             if _attr_name not in ret[_location]:
@@ -395,7 +389,6 @@ class Recognizer():
         for action in ['+', '-']:
             if action not in attributes:
                 attributes[action] = {}
-
         process_exclude = False
         include_set, include_query = set(), ''
         for attr_name in attributes['+']:
@@ -403,7 +396,6 @@ class Recognizer():
                 include_set.add('(attr_name = \'' + attr_name.replace('\'', '\'\'') + '\' and attr_value = \'' + attr_value.replace('\'', '\'\'') + '\')')
         if len(include_set) > 0:
             include_query = 'and (' + ' or '.join(include_set) + ')'
-            
         exclude_set, exclude_query = set(), ''
         for attr_name in attributes['-']:
             for attr_value in attributes['-'][attr_name]:
@@ -411,11 +403,10 @@ class Recognizer():
         if len(exclude_set) > 0:
             exclude_query = 'and (' + ' or '.join(exclude_set) + ')'
             process_exclude = True
-        
         attrs_out_query = ''
         if attrs_out is not None and len(attrs_out) > 0:
             attrs_out_query = ' and attr_name in (\'%s\')' % ('\', \''.join([x.replace('\'', '\'\'') for x in attrs_out]))
-        
+        self.logger('Parsing text...')
         self.push_message('Parsing text', self.callback_status)
         rets = []
         total_normalizers = len(model[model.NORMALIZER_KEY])
@@ -429,8 +420,8 @@ class Recognizer():
             parsed = self.spot_entities(model, normalized_string, normalizer_name, include_query, exclude_query, process_exclude, attrs_out_query, progress_from=progress_from, progress_to=progress_to)
             rets.append((character_map, parsed))
             current_normalizer_index += 1
-        
         flattened = self.flatten(rets)
         locations = self.reduce(flattened.keys())
         ret = {location: flattened[location] for location in locations}
+        self.logger('Done parsing text.')
         return ret
