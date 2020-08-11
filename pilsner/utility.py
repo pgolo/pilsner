@@ -1,13 +1,9 @@
 import logging
-import sqlite3
 import os
 
 class Recognizer():
 
-    OPERATIONAL_STORAGE = ''
-    PERMANENT_STORAGE = ''
-
-    def __init__(self, debug_mode=False, verbose_mode=False, callback_status=None, callback_progress=None, permanent_storage='', operational_storage=':memory:'):
+    def __init__(self, debug_mode=False, verbose_mode=False, callback_status=None, callback_progress=None):
         logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s')
         self.debug = debug_mode
         self.verbose = verbose_mode
@@ -19,20 +15,11 @@ class Recognizer():
             self.logger('Debug mode is on')
         self.callback_status = callback_status
         self.callback_progress = callback_progress
-        self.PERMANENT_STORAGE = permanent_storage
-        self.OPERATIONAL_STORAGE = operational_storage
-        self.o_connection = sqlite3.connect(self.OPERATIONAL_STORAGE)
-        self.o_cursor = self.o_connection.cursor()
-        self.o_cursor.execute('create table if not exists flatten (l integer, r integer, attr_name text, attr_value text);')
-        self.o_cursor.execute('delete from flatten;')
-        self.o_connection.commit()
         logging.debug('Recognizer class has been initialized')
 
     def __del__(self):
         # remove all temporary resources
-        self.o_connection.close()
-        if os.path.exists(self.OPERATIONAL_STORAGE):
-            os.remove(self.OPERATIONAL_STORAGE)
+        pass
 
     def push_message(self, message, callback_function):
         if callback_function is not None:
@@ -219,7 +206,6 @@ class Recognizer():
 
     def attribute_unpacker(self, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
         attributes = {}
-
         include = set()
         exclude = set()
         for n in leaf_ids:
@@ -231,9 +217,7 @@ class Recognizer():
                 rows = cur.execute('select distinct n from attrs where n = %d %s;' % (n, exclude_query))
                 for row in rows:
                     exclude.add(int(row[0]))
-        
         ns = include - exclude
-
         for n in ns:
             rows = cur.execute('select attr_name, attr_value from attrs where n = %d%s;' % (n, attrs_out_query))
             if n not in attributes:
@@ -345,8 +329,7 @@ class Recognizer():
 
     def flatten(self, layers):
         ret = {}
-        self.o_cursor.execute('delete from flatten;')
-        self.o_connection.commit()
+        all_entries = []
         for layer in layers:
             _map = layer[0]
             _recognized = layer[1]
@@ -356,10 +339,16 @@ class Recognizer():
                     _attrs = _content[_id]
                     for _attr_name in _attrs:
                         for _attr_value in _attrs[_attr_name]:
-                            self.o_cursor.execute('insert into flatten (l, r, attr_name, attr_value) select ?, ?, ?, ?;', (_left, _right, _attr_name, _attr_value))
-        rows = self.o_cursor.execute('select f1.l, f1.r, f1.attr_name, f1.attr_value from flatten f1 where not exists (select f2.* from flatten f2 where (f2.l <= f1.l and f2.r > f1.r) or (f2.l < f1.l and f2.r >= f1.r)) order by f1.l asc, f1.r asc;')
-        for row in rows:
-            _location, _attr_name, _attr_value = tuple([int(row[0]), int(row[1])]), str(row[2]), str(row[3])
+                            all_entries.append(tuple([_left, _right, _attr_name, _attr_value]))
+        all_entries = sorted(sorted(all_entries, key=lambda x: -x[1]), key=lambda x: x[0])
+        filtered_entries = [all_entries[0]]
+        for i in range(1, len(all_entries)):
+            q = all_entries[i]
+            if (filtered_entries[-1][0] <= q[0] < filtered_entries[-1][1] and filtered_entries[-1][0] < q[1] < filtered_entries[-1][1]) or (filtered_entries[-1][0] < q[0] < filtered_entries[-1][1] and filtered_entries[-1][0] < q[1] <= filtered_entries[-1][1]):
+                continue
+            filtered_entries.append(q)
+        for entry in filtered_entries:
+            _location, _attr_name, _attr_value = tuple([int(entry[0]), int(entry[1])]), str(entry[2]), str(entry[3])
             if _location not in ret:
                 ret[_location] = {}
             if _attr_name not in ret[_location]:
@@ -400,7 +389,6 @@ class Recognizer():
         for action in ['+', '-']:
             if action not in attributes:
                 attributes[action] = {}
-
         process_exclude = False
         include_set, include_query = set(), ''
         for attr_name in attributes['+']:
@@ -408,7 +396,6 @@ class Recognizer():
                 include_set.add('(attr_name = \'' + attr_name.replace('\'', '\'\'') + '\' and attr_value = \'' + attr_value.replace('\'', '\'\'') + '\')')
         if len(include_set) > 0:
             include_query = 'and (' + ' or '.join(include_set) + ')'
-            
         exclude_set, exclude_query = set(), ''
         for attr_name in attributes['-']:
             for attr_value in attributes['-'][attr_name]:
@@ -416,11 +403,10 @@ class Recognizer():
         if len(exclude_set) > 0:
             exclude_query = 'and (' + ' or '.join(exclude_set) + ')'
             process_exclude = True
-        
         attrs_out_query = ''
         if attrs_out is not None and len(attrs_out) > 0:
             attrs_out_query = ' and attr_name in (\'%s\')' % ('\', \''.join([x.replace('\'', '\'\'') for x in attrs_out]))
-        
+        self.logger('Parsing text...')
         self.push_message('Parsing text', self.callback_status)
         rets = []
         total_normalizers = len(model[model.NORMALIZER_KEY])
@@ -434,8 +420,8 @@ class Recognizer():
             parsed = self.spot_entities(model, normalized_string, normalizer_name, include_query, exclude_query, process_exclude, attrs_out_query, progress_from=progress_from, progress_to=progress_to)
             rets.append((character_map, parsed))
             current_normalizer_index += 1
-        
         flattened = self.flatten(rets)
         locations = self.reduce(flattened.keys())
         ret = {location: flattened[location] for location in locations}
+        self.logger('Done parsing text.')
         return ret
