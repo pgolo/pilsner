@@ -327,7 +327,7 @@ class Recognizer():
         self.logger('Done.')
         return rets
 
-    def flatten(self, layers):
+    def flatten_spans(self, layers):
         ret = {}
         all_entries = []
         for layer in layers:
@@ -356,7 +356,7 @@ class Recognizer():
             ret[_location][_attr_name].add(_attr_value)
         return ret
 
-    def reduce(self, segments):
+    def reduce_spans(self, segments):
         def intersects(segment1, segment2):
             return segment2[0] >= segment1[0] and segment2[0] <= segment1[1]
         def length(segment):
@@ -420,8 +420,8 @@ class Recognizer():
             parsed = self.spot_entities(model, normalized_string, normalizer_name, include_query, exclude_query, process_exclude, attrs_out_query, progress_from=progress_from, progress_to=progress_to)
             rets.append((character_map, parsed))
             current_normalizer_index += 1
-        flattened = self.flatten(rets)
-        locations = self.reduce(flattened.keys())
+        flattened = self.flatten_spans(rets)
+        locations = self.reduce_spans(flattened.keys())
         ret = {location: flattened[location] for location in locations}
         self.logger('Done parsing text.')
         return ret
