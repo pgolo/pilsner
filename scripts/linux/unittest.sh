@@ -4,7 +4,7 @@ MYDIR=`pwd`
 ROOT=${MYDIR}/../..
 ENV=.env.36
 TEST=${ROOT}/test
-FILES="ut_model.py ut_utility.py performance.py"
+FILES="ut_model.py ut_utility.py functional.py performance.py"
 cd ${ROOT}
 for FILE in ${FILES}
 do
