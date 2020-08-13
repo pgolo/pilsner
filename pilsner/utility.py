@@ -30,6 +30,7 @@ class Recognizer():
         specs = {'fields': {}, 'id': None, 'tokenizer': None, 'value': None}
         # {'name': 'DType', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': True, 'value_flag': False},
         # specs = {'DType': (0, None, False, True, False), 'MSID': (1, None, True, False, False), 'value': (2, None, False, False, True)}
+        # specs = {'attr_name': (column_index, delimiter, normalizer_flag, value_flag)}
         for i in range(0, len(fields)):
             field = fields[i]
             if not field['include']:
@@ -83,7 +84,7 @@ class Recognizer():
                     if character not in subtrie:
                         subtrie[character] = {}
                     subtrie = subtrie[character]
-                model.attribute_wrapper(line_number, normalizer_name, internal_id, subtrie, trie, specs, columns)
+                model.attribute_wrapper(line_number, internal_id, subtrie, specs, columns)
                 line_count += 1
                 line_number += 1
         if line_count > 0 and len(trie) > 3:
