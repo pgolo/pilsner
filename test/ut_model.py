@@ -26,10 +26,35 @@ class TestModel(unittest.TestCase):
         assert storage.lower() == ':memory:' or not os.path.exists(storage), 'Model storage is supposed to be removed once class has been destroyed'
 
     def test_save(self):
-        pass
+        m = pilsner.Model()
+        m[m.DICTIONARY_KEY].append({})
+        m.save('./.test_save')
+        del(m)
+        assert os.path.exists('./.test_save.0.dictionary'), 'Dictionary file was not saved'
+        assert os.path.exists('./.test_save.attributes'), 'Attributes file was not saved'
+        assert os.path.exists('./.test_save.keywords'), 'Keywords file was not saved'
+        assert os.path.exists('./.test_save.normalizers'), 'Normalizers file was not saved'
+        os.remove('./.test_save.0.dictionary')
+        os.remove('./.test_save.attributes')
+        os.remove('./.test_save.keywords')
+        os.remove('./.test_save.normalizers')
 
     def test_load(self):
-        pass
+        m1 = pilsner.Model()
+        m1[m1.DICTIONARY_KEY].append({'a': {'b': {'c': 'def'}}})
+        m1[m1.DICTIONARY_KEY].append({'g': {'h': {'i': 'jkl'}}})
+        m1.save('./.test_load')
+        expected = m1[m1.DICTIONARY_KEY]
+        del(m1)
+        m2 = pilsner.Model()
+        m2.load('./.test_load')
+        assert m2[m2.DICTIONARY_KEY] == expected, 'Loaded model %s != saved model %s' % (str(m2[m2.DICTIONARY_KEY]), str(expected))
+        del(m2)
+        os.remove('./.test_load.0.dictionary')
+        os.remove('./.test_load.1.dictionary')
+        os.remove('./.test_load.attributes')
+        os.remove('./.test_load.keywords')
+        os.remove('./.test_load.normalizers')
 
     def test_add_normalizer(self):
         pass
