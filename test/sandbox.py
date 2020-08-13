@@ -27,7 +27,7 @@ def save_it():
         {'name': 'smth', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False},
     ]
     specs = r.compile_dict_specs(fields)
-    r.compile_model(m, 'test/assets/sample_dictionary.txt', specs, ' ', '\t', '\n', item_limit=2, include_keywords=True)
+    r.compile_model(m, 'test/assets/sample_dictionary.txt', specs, ' ', '\t', '\n', item_limit=3, include_keywords=True)
     s = 'this is afinic cell carcinoma o carcinoma, damn it'
     q = r.parse(m, s)
     print(q)
@@ -41,7 +41,7 @@ def load_it():
     q = rrr.parse(m, s, attrs_where={'+': {'smth': {'D', 'A'}}}, attrs_out=['MSID', 'smth'])
     print(q)
 
-#save_it()
+save_it()
 load_it()
 
 #segments = [tuple([1, 2]), tuple([3, 8]), tuple([1, 6]), tuple([2, 3])]
