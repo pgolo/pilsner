@@ -1,3 +1,4 @@
+import os
 import sys; sys.path.insert(0, '')
 import unittest
 import pilsner # pylint: disable=E0611,F0401
@@ -11,10 +12,18 @@ class TestModel(unittest.TestCase):
         pass
 
     def test_init(self):
-        pass
+        m = pilsner.Model()
+        assert 'm' in locals(), 'Instance of Model class has not been created'
+        assert type(m) == pilsner.Model, 'Model is expected to have pilsner.Model type, but has %s instead' % (str(type(m)))
+        storage = m.DEFAULT_DATASOURCE
+        assert storage.lower() == ':memory:' or os.path.exists(storage), 'Model storage is not where it is supposed to be'
 
     def test_del(self):
-        pass
+        m = pilsner.Model()
+        storage = m.DEFAULT_DATASOURCE
+        del(m)
+        assert 'm' not in locals(), 'Instance of Model class has not been destroyed'
+        assert storage.lower() == ':memory:' or not os.path.exists(storage), 'Model storage is supposed to be removed once class has been destroyed'
 
     def test_save(self):
         pass

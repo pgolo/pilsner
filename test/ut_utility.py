@@ -11,10 +11,14 @@ class TestModel(unittest.TestCase):
         pass
 
     def test_init(self):
-        pass
+        r = pilsner.Recognizer()
+        assert 'r' in locals(), 'Instance of Recognizer class has not been created'
+        assert type(r) == pilsner.Recognizer, 'Utility is supposed to have pilsner.Recognizer type, but has %s instead' % (str(type(r)))
 
     def test_del(self):
-        pass
+        r = pilsner.Recognizer()
+        del(r)
+        assert 'r' not in locals(), 'Instance of Recognizer class has not been destroyed'
 
     def test_push_message(self):
         pass
