@@ -2,7 +2,7 @@ import sys; sys.path.insert(0, '')
 import unittest
 import pilsner # pylint: disable=E0611,F0401
 
-class TestModel(unittest.TestCase):
+class TestUtility(unittest.TestCase):
 
     def setUp(self):
         pass
