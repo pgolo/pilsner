@@ -84,7 +84,7 @@ class TestModel(unittest.TestCase):
         expected = {self.model.CONTENT_KEY: {'t1': {'r': {'adio': {'l': {'ogy': {self.model.ENTITY_KEY: [1]}}, 't': {'elescope': {self.model.ENTITY_KEY: [2]}}}}}, 't2': {'r': {'adio': {'l': {'ogy': {self.model.ENTITY_KEY: [1]}}, 't': {'elescope': {self.model.ENTITY_KEY: [2]}}}}}}}
         assert packed == expected, '%s != %s' % (str(packed), str(expected))
 
-    def test_attribute_wrapper(self):
+    def test_store_attributes(self):
         pass
 
     def test_get_dictionary_line(self):

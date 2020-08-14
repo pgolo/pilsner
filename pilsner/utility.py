@@ -84,7 +84,7 @@ class Recognizer():
                     if character not in subtrie:
                         subtrie[character] = {}
                     subtrie = subtrie[character]
-                model.attribute_wrapper(line_number, internal_id, subtrie, specs, columns)
+                model.store_attributes(line_number, internal_id, subtrie, specs, columns)
                 line_count += 1
                 line_number += 1
         if line_count > 0 and len(trie) > 3:
