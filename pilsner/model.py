@@ -169,7 +169,7 @@ class Model(dict):
             ret[self.CONTENT_KEY][normalizer_name] = packed
         return ret
 
-    def attribute_wrapper(self, line_number, internal_id, subtrie, specs, columns):
+    def store_attributes(self, line_number, internal_id, subtrie, specs, columns):
         if self.ENTITY_KEY not in subtrie:
             subtrie[self.ENTITY_KEY] = []
         subtrie[self.ENTITY_KEY].append(line_number)
