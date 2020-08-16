@@ -85,7 +85,27 @@ class TestModel(unittest.TestCase):
         assert packed == expected, '%s != %s' % (str(packed), str(expected))
 
     def test_store_attributes(self):
-        pass
+        line_number = 123
+        internal_id = 456
+        subtrie = {}
+        specs = {'fields': {'attr1': (0, None, False, False), 'attr2': (1, None, False, True), 'attr3': (2, None, True, False), 'attr4': (3, ',', False, False)}}
+        columns = ['attr1_value', 'attr2_value', 'attr3_value', 'attr4_value_1,attr4_value_2,attr4_value_3']
+        self.model.create_recognizer_schema(self.model.cursor)
+        self.model.store_attributes(line_number, internal_id, subtrie, specs, columns)
+        rows = self.model.cursor.execute('select * from attrs;')
+        stored = set()
+        for row in rows:
+            stored.add(tuple(row))
+        expected = {
+            (123, 456, 'attr1', 'attr1_value'),
+            (123, 456, 'attr3', 'attr3_value'),
+            (123, 456, 'attr4', 'attr4_value_1'),
+            (123, 456, 'attr4', 'attr4_value_2'),
+            (123, 456, 'attr4', 'attr4_value_3')
+        }
+        assert len(stored) == len(expected), 'Expected to store %d rows (got %d instead)' % (len(expected), len(stored))
+        for entry in expected:
+            assert entry in stored, 'Entry %s was not stored' % str(entry)
 
     def test_get_dictionary_line(self):
         pass
