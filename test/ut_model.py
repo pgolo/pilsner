@@ -108,7 +108,16 @@ class TestModel(unittest.TestCase):
             assert entry in stored, 'Entry %s was not stored' % str(entry)
 
     def test_get_dictionary_line(self):
-        pass
+        specs = {'fields': {}, 'id': [0], 'tokenizer': None, 'value': None}
+        entity_ids = {}
+        line_numbers = {}
+        line_number = 1
+        line = 'entity_id\tstring_value\n'
+        column_separator = '\t'
+        cell_wall = '\n'
+        got_line = self.model.get_dictionary_line(specs, entity_ids, line_numbers, line_number, line, column_separator, cell_wall)
+        expected = (['entity_id', 'string_value'], 0)
+        assert got_line == expected, 'Expected %s, got %s' % (expected, got_line)
 
     def test_get_dictionary_synonym(self):
         pass
