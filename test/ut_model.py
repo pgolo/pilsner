@@ -151,7 +151,21 @@ class TestModel(unittest.TestCase):
         assert got_synonym == expected, 'Expected %s, got %s' % (str(expected), str(got_synonym))
 
     def test_next_trie(self):
-        pass
+        specs = {'specs': ('are', 'here')}
+        compressed = True
+        tokenizer_option = 0
+        word_separator = ' '
+        self.model.add_normalizer('t1', 'test/assets/tokenizer1.xml')
+        self.model.add_normalizer('t2', 'test/assets/tokenizer2.xml')
+        got_trie = self.model.next_trie(specs, compressed, tokenizer_option, word_separator)
+        expected = {
+            self.model.CONTENT_KEY: {'t1': {}, 't2': {}},
+            self.model.SPECS_KEY: specs,
+            self.model.COMPRESSED_KEY: int(compressed),
+            self.model.TOKENIZER_OPTION_KEY: tokenizer_option,
+            self.model.WORD_SEPARATOR_KEY: word_separator
+        }
+        assert got_trie == expected, 'Expected %s, got %s' % (str(expected), str(got_trie))
 
 if __name__ == '__main__':
     unittest.main()
