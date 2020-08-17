@@ -108,19 +108,48 @@ class TestModel(unittest.TestCase):
             assert entry in stored, 'Entry %s was not stored' % str(entry)
 
     def test_get_dictionary_line(self):
-        specs = {'fields': {}, 'id': [0], 'tokenizer': None, 'value': None}
+        specs = {
+            'fields': {
+                'normalizer': (0, None, True, False),
+                'entity_id': (1, None, False, False),
+                'entity_value': (2, None, False, True),
+                'something_else': (3, ',', False, False)
+            },
+            'id': (1, None, False, False),
+            'tokenizer': (0, None, True, False),
+            'value': (2, None, False, True)
+        }
         entity_ids = {}
         line_numbers = {}
         line_number = 1
-        line = 'entity_id\tstring_value\n'
+        line = 't1\tentity_id\tstring_value\tsome_attr,another_attr\n'
         column_separator = '\t'
         cell_wall = '\n'
         got_line = self.model.get_dictionary_line(specs, entity_ids, line_numbers, line_number, line, column_separator, cell_wall)
-        expected = (['entity_id', 'string_value'], 0)
-        assert got_line == expected, 'Expected %s, got %s' % (expected, got_line)
+        expected = (['t1', 'entity_id', 'string_value', 'some_attr,another_attr'], 0)
+        assert got_line == expected, 'Expected %s, got %s' % (str(expected), str(got_line))
 
     def test_get_dictionary_synonym(self):
-        pass
+        # get_dictionary_synonym(self, columns, specs, word_separator, tokenizer_option=0)
+        columns = ['t1', 'entity_id', 'string_value', 'some_attr,another_attr']
+        specs = {
+            'fields': {
+                'normalizer': (0, None, True, False),
+                'entity_id': (1, None, False, False),
+                'entity_value': (2, None, False, True),
+                'something_else': (3, ',', False, False)
+            },
+            'id': (1, None, False, False),
+            'tokenizer': (0, None, True, False),
+            'value': (2, None, False, True)
+        }
+        word_separator = ' '
+        tokenizer_option = 0
+        self.model.add_normalizer('t1', 'test/assets/tokenizer1.xml')
+        self.model.add_normalizer('t2', 'test/assets/tokenizer2.xml')
+        got_synonym = self.model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)
+        expected = ('string _ value', 't1')
+        assert got_synonym == expected, 'Expected %s, got %s' % (str(expected), str(got_synonym))
 
     def test_next_trie(self):
         pass
