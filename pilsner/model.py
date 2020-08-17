@@ -100,7 +100,7 @@ class Model(dict):
             self[self.TOKENIZER_OPTION_KEY] = normalizers[self.TOKENIZER_OPTION_KEY]
         self[self.DEFAULT_NORMALIZER_KEY] = normalizers[self.DEFAULT_NORMALIZER_KEY]
         logging.debug('Loaded "%s"' % ('%s.normalizers' % (filename)))
-        for _filename in os.listdir(os.path.dirname(filename)) if os.path.dirname(filename) != '' else os.listdir():
+        for _filename in sorted(os.listdir(os.path.dirname(filename))) if os.path.dirname(filename) != '' else sorted(os.listdir()):
             if _filename.startswith(os.path.basename(filename) + '.') and _filename.endswith('.dictionary'):
                 with open('%s/%s' % (os.path.dirname(filename), _filename) if os.path.dirname(filename) != '' else _filename, mode='rb') as f:
                     dictionary = pickle.load(f)
