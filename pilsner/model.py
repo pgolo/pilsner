@@ -119,6 +119,7 @@ class Model(dict):
         logging.debug('Adding normalizer "%s" from "%s"' % (normalizer_name, filename))
         normalizer = self.sic_builder.build_normalizer(filename)
         self[self.NORMALIZER_KEY][normalizer_name] = normalizer
+        self.normalizer_map[normalizer_name] = normalizer_name
         if len(self[self.NORMALIZER_KEY]) == 1 or default:
             self[self.DEFAULT_NORMALIZER_KEY] = normalizer_name
         logging.debug('Added normalizer "%s" from "%s"' % (normalizer_name, filename))
