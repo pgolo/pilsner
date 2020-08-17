@@ -130,7 +130,6 @@ class TestModel(unittest.TestCase):
         assert got_line == expected, 'Expected %s, got %s' % (str(expected), str(got_line))
 
     def test_get_dictionary_synonym(self):
-        # get_dictionary_synonym(self, columns, specs, word_separator, tokenizer_option=0)
         columns = ['t1', 'entity_id', 'string_value', 'some_attr,another_attr']
         specs = {
             'fields': {
