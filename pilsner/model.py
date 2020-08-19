@@ -191,6 +191,7 @@ class Model(dict):
             if entity_id not in entity_ids:
                 entity_ids[entity_id] = len(entity_ids)
             internal_id = entity_ids[entity_id]
+            line_numbers[line_number] = internal_id
         return columns, internal_id
 
     def get_dictionary_synonym(self, columns, specs, word_separator, tokenizer_option=0):
@@ -206,6 +207,8 @@ class Model(dict):
         return synonym, normalizer_name
 
     def next_trie(self, specs, compressed, tokenizer_option, word_separator):
+        if len(self[self.NORMALIZER_KEY]) == 0:
+            self.add_normalizer('bypass', '%s/normalizer.bypass.xml' % (os.path.abspath(os.path.dirname(__file__))))
         new_trie = {
             self.CONTENT_KEY: {normalizer_name: {} for normalizer_name in self[self.NORMALIZER_KEY]},
             self.SPECS_KEY: specs,
