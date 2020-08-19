@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tokenizer name="bypass">
+  <setting name="bypass" value="1" />
+</tokenizer>
