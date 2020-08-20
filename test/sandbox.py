@@ -29,23 +29,24 @@ def save_it():
     specs = r.compile_dict_specs(fields)
     _messages.clear()
     r.compile_model(m, 'test/assets/sample_dictionary.txt', specs, ' ', '\t', '\n', item_limit=3, include_keywords=True)
-    s = 'this is awwsome white refrigerator o refrigerator, is it not'
+    print(m['~keywords'])
+    s = 'this is awwsome white refrigerator o refrigerator, is it tors not conflicting refrigerator hey'
     _messages.clear()
     q = r.parse(m, s)
     print(q)
-    m.save('.test_model')
+    #m.save('.test_model')
 
 def load_it():
     rrr = pilsner.Recognizer(callback_status=callback_update_status, callback_progress=callback_update_mesage)
     m = pilsner.Model('.test_model')
-    s = 'this is awesome white refrigerators o carcinoma, is it not'
+    s = 'this is awesome white refrigerators o refrigerator, is it not'
     s *= 10
     _messages.clear()
     q = rrr.parse(m, s, attrs_where={'+': {'smth': {'D', 'A'}}}, attrs_out=['MSID', 'smth'])
     print(q)
 
 save_it()
-load_it()
+#load_it()
 
 #segments = [tuple([1, 2]), tuple([3, 8]), tuple([1, 6]), tuple([2, 3])]
 #r = Recognizer()

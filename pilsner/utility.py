@@ -320,10 +320,10 @@ class Recognizer():
                     ret.append(shorter_alternative)
             elif shorter_alternative:
                 ret.append(shorter_alternative)
-            if model[model.KEYWORDS_KEY] is not None:
-                self.verify_keywords(model, ret, source_string, word_separator)
             rets += ret
             current_trie_index += 1
+        if model[model.KEYWORDS_KEY] is not None:
+            self.verify_keywords(model, rets, source_string, word_separator)
         self.push_message(progress_to, self.callback_progress)
         self.logger('Done.')
         return rets
@@ -341,20 +341,21 @@ class Recognizer():
                     for _attr_name in _attrs:
                         for _attr_value in _attrs[_attr_name]:
                             all_entries.append(tuple([_left, _right, _attr_name, _attr_value]))
-        all_entries = sorted(sorted(all_entries, key=lambda x: -x[1]), key=lambda x: x[0])
-        filtered_entries = [all_entries[0]]
-        for i in range(1, len(all_entries)):
-            q = all_entries[i]
-            if (filtered_entries[-1][0] <= q[0] < filtered_entries[-1][1] and filtered_entries[-1][0] < q[1] < filtered_entries[-1][1]) or (filtered_entries[-1][0] < q[0] < filtered_entries[-1][1] and filtered_entries[-1][0] < q[1] <= filtered_entries[-1][1]):
-                continue
-            filtered_entries.append(q)
-        for entry in filtered_entries:
-            _location, _attr_name, _attr_value = tuple([int(entry[0]), int(entry[1])]), str(entry[2]), str(entry[3])
-            if _location not in ret:
-                ret[_location] = {}
-            if _attr_name not in ret[_location]:
-                ret[_location][_attr_name] = set()
-            ret[_location][_attr_name].add(_attr_value)
+        if len(all_entries) > 0:
+            all_entries = sorted(sorted(all_entries, key=lambda x: -x[1]), key=lambda x: x[0])
+            filtered_entries = [all_entries[0]]
+            for i in range(1, len(all_entries)):
+                q = all_entries[i]
+                if (filtered_entries[-1][0] <= q[0] < filtered_entries[-1][1] and filtered_entries[-1][0] < q[1] < filtered_entries[-1][1]) or (filtered_entries[-1][0] < q[0] < filtered_entries[-1][1] and filtered_entries[-1][0] < q[1] <= filtered_entries[-1][1]):
+                    continue
+                filtered_entries.append(q)
+            for entry in filtered_entries:
+                _location, _attr_name, _attr_value = tuple([int(entry[0]), int(entry[1])]), str(entry[2]), str(entry[3])
+                if _location not in ret:
+                    ret[_location] = {}
+                if _attr_name not in ret[_location]:
+                    ret[_location][_attr_name] = set()
+                ret[_location][_attr_name].add(_attr_value)
         return ret
 
     def reduce_spans(self, segments):
