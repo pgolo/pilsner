@@ -178,7 +178,7 @@ class Recognizer():
                     winner_id.clear()
                 if kwd_score[i] == winner_score:
                     winner_id.add(i)
-            recognized[k] = tuple([[x for x in recognized[k][0] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id]] + [{x: recognized[k][1][x] for x in recognized[k][1] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id}] + list(recognized[k])[2:5] + [True])
+            recognized[k] = tuple([[x for x in recognized[k][0] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id]] + [{x: recognized[k][1][x] for x in recognized[k][1] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id}] + list(recognized[k])[2:5])
 
     def unpack_trie(self, model, packed_trie, compressed):
         """TODO: add docstring here
@@ -275,7 +275,7 @@ class Recognizer():
                         found_object = self.check_attrs(model, subtrie, model.cursor, dictionary_specs, include_query, exclude_query, process_exclude, attrs_out_query)
                         if found_object:
                             identified = found_object[model.ENTITY_KEY], found_object[model.ATTRS_KEY]
-                            shorter_alternative = (identified[0], identified[1], string_so_far, start_index + 1, end_index, False)
+                            shorter_alternative = (identified[0], identified[1], string_so_far, start_index + 1, end_index)
                     if character in subtrie:
                         if character == word_separator and temporary_index == -1:
                             temporary_index = current_index
@@ -288,7 +288,7 @@ class Recognizer():
                                 found_object = self.check_attrs(model, subtrie, model.cursor, dictionary_specs, include_query, exclude_query, process_exclude, attrs_out_query)
                                 if found_object:
                                     identified = found_object[model.ENTITY_KEY], found_object[model.ATTRS_KEY]
-                                    ret.append((identified[0], identified[1], string_so_far, start_index + 1, end_index, False))
+                                    ret.append((identified[0], identified[1], string_so_far, start_index + 1, end_index))
                                     shorter_alternative = None
                                 else:
                                     if shorter_alternative:
@@ -317,7 +317,7 @@ class Recognizer():
                 found_object = self.check_attrs(model, subtrie, model.cursor, dictionary_specs, include_query, exclude_query, process_exclude, attrs_out_query)
                 if found_object:
                     identified = found_object[model.ENTITY_KEY], found_object[model.ATTRS_KEY]
-                    ret.append((identified[0], identified[1], string_so_far, start_index + 1, current_index - 1, False))
+                    ret.append((identified[0], identified[1], string_so_far, start_index + 1, current_index - 1))
                 elif shorter_alternative:
                     ret.append(shorter_alternative)
             elif shorter_alternative:
