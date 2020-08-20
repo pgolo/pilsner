@@ -191,7 +191,8 @@ class TestUtility(unittest.TestCase):
                 },
                 'conflicting refrigerator',
                 8,
-                31
+                31,
+                False
             )
         ]
         self.recognizer.verify_keywords(model=model, recognized=recognized, src=src, word_separator=' ')
@@ -203,7 +204,8 @@ class TestUtility(unittest.TestCase):
                 },
                 'conflicting refrigerator',
                 8,
-                31
+                31,
+                True
             )
         ]
         assert recognized == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(recognized))
