@@ -10,6 +10,24 @@ class TestUtility(unittest.TestCase):
     def tearDown(self):
         del(self.recognizer)
 
+    def compile_test_model(self):
+        fields = [
+            {'name': 'normalizer', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': True, 'value_flag': False},
+            {'name': 'entity_id', 'include': True, 'delimiter': None, 'id_flag': True, 'normalizer_flag': False, 'value_flag': False},
+            {'name': 'label', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': True},
+            {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
+        ]
+        specs = self.recognizer.compile_dict_specs(fields)
+        model = pilsner.Model()
+        model.add_normalizer('t1', 'test/assets/tokenizer1.xml')
+        model.add_normalizer('t2', 'test/assets/tokenizer2.xml')
+        model.normalizer_map = {
+            'tokenizer1': 't1',
+            'tokenizer2': 't2'
+        }
+        compiled = self.recognizer.compile_model(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', column_separator='\t', cell_wall='\n', include_keywords=True)
+        return compiled, model
+
     def test_init(self):
         r = pilsner.Recognizer()
         assert 'r' in locals(), 'Instance of Recognizer class has not been created'
@@ -127,21 +145,7 @@ class TestUtility(unittest.TestCase):
         assert keywords == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(keywords))
 
     def test_compile_model(self):
-        fields = [
-            {'name': 'normalizer', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': True, 'value_flag': False},
-            {'name': 'entity_id', 'include': True, 'delimiter': None, 'id_flag': True, 'normalizer_flag': False, 'value_flag': False},
-            {'name': 'label', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': True},
-            {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
-        ]
-        specs = self.recognizer.compile_dict_specs(fields)
-        model = pilsner.Model()
-        model.add_normalizer('t1', 'test/assets/tokenizer1.xml')
-        model.add_normalizer('t2', 'test/assets/tokenizer2.xml')
-        model.normalizer_map = {
-            'tokenizer1': 't1',
-            'tokenizer2': 't2'
-        }
-        compiled = self.recognizer.compile_model(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', column_separator='\t', cell_wall='\n', include_keywords=True)
+        compiled, model = self.compile_test_model()
         assert compiled == True, 'pilsner.Recognizer.compile_model() returned False which is not expected'
         assert model.NORMALIZER_KEY in model, 'Model does not have model.NORMALIZER_KEY which is not expected'
         assert model.DEFAULT_NORMALIZER_KEY in model, 'Model does not have model.DEFAULT_NORMALIZER_KEY which is not expected'
@@ -176,10 +180,40 @@ class TestUtility(unittest.TestCase):
         assert model[model.KEYWORDS_KEY] == expected_keywords, '\nExpected\n%s\nGot\n%s' % (str(expected_keywords), str(model[model.KEYWORDS_KEY]))
 
     def test_verify_keywords(self):
-        pass
+        _, model = self.compile_test_model()
+        src = 'awwsome conflicting refrigerator'
+        recognized = [
+            (
+                [2, 8],
+                {
+                    2: {'entity_id': ['entity2'], 'normalizer': ['tokenizer2'], 'some_attribute': ['D', 'E']},
+                    8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer2'], 'some_attribute': ['A', 'B', 'C']}
+                },
+                'conflicting refrigerator',
+                8,
+                31
+            )
+        ]
+        self.recognizer.verify_keywords(model=model, recognized=recognized, src=src, word_separator=' ')
+        expected = [
+            (
+                [8],
+                {
+                    8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer2'], 'some_attribute': ['A', 'B', 'C']}
+                },
+                'conflicting refrigerator',
+                8,
+                31
+            )
+        ]
+        assert recognized == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(recognized))
 
     def test_unpack_trie(self):
-        pass
+        _, model = self.compile_test_model()
+        packed_trie = {'wesome white refrigera': {' ': {'tors': {model.ENTITY_KEY: [0]}}, 't': {'or': {'x': {model.ENTITY_KEY: [1]}, model.ENTITY_KEY: [4]}}}}
+        expected = {'w': {'e': {'s': {'o': {'m': {'e': {' ': {'w': {'h': {'i': {'t': {'e': {' ': {'r': {'e': {'f': {'r': {'i': {'g': {'e': {'r': {'a': {' ': {'tors': {'~i': [0]}}, 't': {'or': {'x': {'~i': [1]}, '~i': [4]}}}}}}}}}}}}}}}}}}}}}}}}}
+        unpacked_trie = self.recognizer.unpack_trie(model=model, packed_trie=packed_trie, compressed=True)
+        assert unpacked_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(unpacked_trie))
 
     def test_check_attrs(self):
         pass
