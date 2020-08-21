@@ -152,34 +152,6 @@ class Recognizer():
         model[model.KEYWORDS_KEY] = keywords
         return True
 
-    def verify_keywords(self, model, recognized, src, word_separator):
-        id_list = [set([model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] for x in rec[0] if x in model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY]]) for rec in recognized]
-        for k in range(len(id_list)):
-            ids = id_list[k]
-            if len(ids) < 2:
-                continue
-            si = 0
-            ei = len(src)
-            if k > 0:
-                si = recognized[k-1][4]
-            if k < len(id_list) - 1:
-                ei = recognized[k+1][3]
-            tokens = src[si:ei]
-            s_tokens = set(tokens.split(word_separator))
-            tmp = {i: model[model.KEYWORDS_KEY][model.CONTENT_KEY][i] if i in model[model.KEYWORDS_KEY][model.CONTENT_KEY] else set() for i in ids}
-            kwd = {i: tmp[i] - tmp[j] for i in tmp for j in tmp if j != i}
-            winner_score = 0
-            winner_id = set()
-            kwd_score = {}
-            for i in kwd:
-                kwd_score[i] = len(kwd[i].intersection(s_tokens))
-                if kwd_score[i] > winner_score:
-                    winner_score = kwd_score[i]
-                    winner_id.clear()
-                if kwd_score[i] == winner_score:
-                    winner_id.add(i)
-            recognized[k] = tuple([[x for x in recognized[k][0] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id]] + [{x: recognized[k][1][x] for x in recognized[k][1] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id}] + list(recognized[k])[2:5])
-
     def unpack_trie(self, model, packed_trie, compressed):
         """TODO: add docstring here
         """
@@ -232,8 +204,6 @@ class Recognizer():
 
     def spot_entities(self, model, source_string, normalizer_name, include_query='', exclude_query='', process_exclude=False, attrs_out_query='', progress_from=0, progress_to=100):
         # TODO: review for refactoring
-        def blend_in(_ret, _rets):
-            _rets += _ret
         self.logger('Analyzing "%s"... ' % (source_string))
         rets = []
         this_progress_position = 0
@@ -322,11 +292,8 @@ class Recognizer():
                     ret.append(shorter_alternative)
             elif shorter_alternative:
                 ret.append(shorter_alternative)
-            #rets += ret
-            blend_in(ret, rets)
+            rets += ret
             current_trie_index += 1
-        #if model[model.KEYWORDS_KEY] is not None:
-        #    self.verify_keywords(model, rets, source_string, word_separator)
         self.push_message(progress_to, self.callback_progress)
         self.logger('Done.')
         return rets
