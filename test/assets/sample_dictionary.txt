@@ -6,4 +6,4 @@ tokenizer1	entity1	awesome white refrigerator	A,B,C
 tokenizer2	entity1	awwsome white refrigerator	A,B,C
 tokenizer2	entity1	it	A,B,C
 tokenizer2	entity1	o	A,B,C
-tokenizer2	entity1	conflicting refrigerator	A,B,C
+tokenizer1	entity1	conflicting refrigerator	A,B,C
