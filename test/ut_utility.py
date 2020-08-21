@@ -179,35 +179,6 @@ class TestUtility(unittest.TestCase):
         assert model[model.DICTIONARY_KEY] == expected_dictionary, '\nExpected\n%s\nGot\n%s' % (str(expected_dictionary), str(model[model.DICTIONARY_KEY]))
         assert model[model.KEYWORDS_KEY] == expected_keywords, '\nExpected\n%s\nGot\n%s' % (str(expected_keywords), str(model[model.KEYWORDS_KEY]))
 
-    def test_verify_keywords(self):
-        _, model = self.compile_test_model()
-        src = 'awwsome conflicting refrigerator'
-        recognized = [
-            (
-                [2, 8],
-                {
-                    2: {'entity_id': ['entity2'], 'normalizer': ['tokenizer2'], 'some_attribute': ['D', 'E']},
-                    8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer2'], 'some_attribute': ['A', 'B', 'C']}
-                },
-                'conflicting refrigerator',
-                8,
-                31
-            )
-        ]
-        self.recognizer.verify_keywords(model=model, recognized=recognized, src=src, word_separator=' ')
-        expected = [
-            (
-                [8],
-                {
-                    8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer2'], 'some_attribute': ['A', 'B', 'C']}
-                },
-                'conflicting refrigerator',
-                8,
-                31
-            )
-        ]
-        assert recognized == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(recognized))
-
     def test_unpack_trie(self):
         _, model = self.compile_test_model()
         packed_trie = {'wesome white refrigera': {' ': {'tors': {model.ENTITY_KEY: [0]}}, 't': {'or': {'x': {model.ENTITY_KEY: [1]}, model.ENTITY_KEY: [4]}}}}
@@ -222,6 +193,12 @@ class TestUtility(unittest.TestCase):
         pass
 
     def test_spot_entities(self):
+        pass
+
+    def test_disambiguate(self):
+        pass
+
+    def test_flatten_layers(self):
         pass
 
     def test_flatten_spans(self):
