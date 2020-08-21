@@ -172,7 +172,7 @@ class TestUtility(unittest.TestCase):
                 model.COMPRESSED_KEY: 1,
                 model.TOKENIZER_OPTION_KEY: 0,
                 model.WORD_SEPARATOR_KEY: ' ',
-                model.CONTENT_KEY: {'t1': {'a': {'wesome white refrigera': {' ': {'tors': {model.ENTITY_KEY: [0]}}, 't': {'or': {'x': {model.ENTITY_KEY: [1]}, model.ENTITY_KEY: [4]}}}}}, 't2': {'c': {'onflicting refrigerator': {model.ENTITY_KEY: [2, 8]}}, 'a': {'w': {'e': {'some refrigerators': {model.ENTITY_KEY: [3]}}, 'w': {'some refrigerator': {model.ENTITY_KEY: [5]}}}}, 'i': {'t': {model.ENTITY_KEY: [6]}}, 'o': {model.ENTITY_KEY: [7]}}}
+                model.CONTENT_KEY: {'t1': {'a': {'wesome white refrigera': {' ': {'tors': {model.ENTITY_KEY: [0]}}, 't': {'or': {'x': {model.ENTITY_KEY: [1]}, model.ENTITY_KEY: [4]}}}}, 'c': {'onflicting refrigerator': {model.ENTITY_KEY: [8]}}}, 't2': {'c': {'onflicting refrigerator': {model.ENTITY_KEY: [2]}}, 'a': {'w': {'e': {'some refrigerators': {model.ENTITY_KEY: [3]}}, 'w': {'some refrigerator': {model.ENTITY_KEY: [5]}}}}, 'i': {'t': {model.ENTITY_KEY: [6]}}, 'o': {model.ENTITY_KEY: [7]}}}
             }
         ]
         expected_keywords = {model.CONTENT_KEY: {0: {'refrigera', 'refrigeratorx', 'tors', 'refrigerator', 'white', 'awesome', 'conflicting'}, 1: {'it', 'o', 'awwsome', 'white', 'refrigerator', 'refrigerator', 'conflicting', 'refrigerators', 'awesome'}}, model.INTERNAL_ID_KEY: {0: 0, 1: 0, 2: 0, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1}}

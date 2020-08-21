@@ -325,25 +325,98 @@ class Recognizer():
             #rets += ret
             blend_in(ret, rets)
             current_trie_index += 1
-        if model[model.KEYWORDS_KEY] is not None:
-            self.verify_keywords(model, rets, source_string, word_separator)
+        #if model[model.KEYWORDS_KEY] is not None:
+        #    self.verify_keywords(model, rets, source_string, word_separator)
         self.push_message(progress_to, self.callback_progress)
         self.logger('Done.')
         return rets
 
-    def flatten_spans(self, layers):
-        ret = {}
-        all_entries = []
-        for layer in layers:
+    def disambiguate(self, model, recognized, srcs, word_separator):
+        _recognized = sorted(recognized, key=lambda x: x[2])
+        id_list = [[model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] for x in rec[0] if x in model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY]] for rec in _recognized]
+        for k in range(len(id_list)):
+            ids = id_list[k]
+            if len(ids) < 2:
+                continue
+            si = []
+            src = []
+            ei = []
+            tokens = []
+            s_tokens = []
+            for j in range(len(ids)):
+                #si[j] = 0
+                si.append(0)
+                #src[j] = srcs[recognized[k][4][j]]
+                src.append(srcs[_recognized[k][4][j]])
+                #ei[j] = len(src[j])
+                ei.append(len(src[j]))
+                if k > 0:
+                    si[j] = _recognized[k-1][5][0][1]
+                if k < len(id_list) - 1:
+                    ei[j] = _recognized[k+1][5][0][0]
+                #tokens[j] = src[j][si[j]:ei[j]]
+                tokens.append(src[j][si[j]:ei[j]])
+                #s_tokens[j] = set(tokens[j].split(word_separator))
+                s_tokens.append(set(tokens[j].split(word_separator)))
+            tmp = {i: model[model.KEYWORDS_KEY][model.CONTENT_KEY][i] if i in model[model.KEYWORDS_KEY][model.CONTENT_KEY] else set() for i in ids}
+            kwd = {i: tmp[i] - tmp[j] for i in tmp for j in tmp if j != i}
+            winner_score = 0
+            winner_id = set()
+            kwd_score = {}
+            for i in kwd:
+                kwd_score[i] = len(kwd[i].intersection(s_tokens[i]))
+                if kwd_score[i] > winner_score:
+                    winner_score = kwd_score[i]
+                    winner_id.clear()
+                if kwd_score[i] == winner_score:
+                    winner_id.add(i)
+            _recognized[k] = tuple([[x for x in _recognized[k][0] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id]] + [{x: _recognized[k][1][x] for x in _recognized[k][1] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id}] + list(_recognized[k])[2:])
+        return _recognized
+
+    def flatten_layers(self, model, layers):
+        spans = {}
+        srcs = []
+        for i in range(0, len(layers)):
+            layer = layers[i]
             _map = layer[0]
             _recognized = layer[1]
+            _src = layer[2]
+            srcs.append(_src)
             for span in _recognized:
-                _ids, _content, _left, _right = span[0], span[1], _map[span[3]], _map[span[4]]
-                for _id in _ids:
-                    _attrs = _content[_id]
-                    for _attr_name in _attrs:
-                        for _attr_value in _attrs[_attr_name]:
-                            all_entries.append(tuple([_left, _right, _attr_name, _attr_value]))
+                location = tuple([_map[span[3]], _map[span[4]]])
+                if location not in spans:
+                    spans[location] = []
+                spans[location].append(tuple([span[0], span[1], [i] * len(span[0]), span[3], span[4]]))
+        new_layers = []
+        for location in spans:
+            new_left = location[0]
+            new_right = location[1]
+            new_ids = []
+            new_attrs = {}
+            new_srcids = []
+            new_locations = []
+            for item in spans[location]:
+                new_ids += item[0]
+                new_attrs = {**new_attrs, **item[1]}
+                new_srcids += item[2]
+                new_locations.append(tuple([item[3], item[4]]))
+            new_layers.append(tuple([new_ids, new_attrs, new_left, new_right, new_srcids, new_locations]))
+        if model[model.KEYWORDS_KEY] is not None:
+            new_layers = self.disambiguate(model, new_layers, srcs, ' ')
+            pass
+        ret = [x[0:4] for x in new_layers]
+        return ret
+
+    def flatten_spans(self, recognized):
+        ret = {}
+        all_entries = []
+        for span in recognized:
+            _ids, _content, _left, _right = span[0], span[1], span[2], span[3]
+            for _id in _ids:
+                _attrs = _content[_id]
+                for _attr_name in _attrs:
+                    for _attr_value in _attrs[_attr_name]:
+                        all_entries.append(tuple([_left, _right, _attr_name, _attr_value]))
         if len(all_entries) > 0:
             all_entries = sorted(sorted(all_entries, key=lambda x: -x[1]), key=lambda x: x[0])
             filtered_entries = [all_entries[0]]
@@ -423,10 +496,11 @@ class Recognizer():
             progress_from = current_normalizer_index * spot_progress_share
             progress_to = (current_normalizer_index + 1) * spot_progress_share
             parsed = self.spot_entities(model, normalized_string, normalizer_name, include_query, exclude_query, process_exclude, attrs_out_query, progress_from=progress_from, progress_to=progress_to)
-            rets.append((character_map, parsed))
+            rets.append((character_map, parsed, normalized_string))
             current_normalizer_index += 1
-        flattened = self.flatten_spans(rets)
-        locations = self.reduce_spans(flattened.keys())
-        ret = {location: flattened[location] for location in locations}
+        layers = self.flatten_layers(model, rets)
+        spans = self.flatten_spans(layers)
+        locations = self.reduce_spans(spans.keys())
+        ret = {location: spans[location] for location in locations}
         self.logger('Done parsing text.')
         return ret
