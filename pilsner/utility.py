@@ -332,7 +332,8 @@ class Recognizer():
         return rets
 
     def disambiguate(self, model, recognized, srcs, word_separator):
-        id_list = [[model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] for x in rec[0] if x in model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY]] for rec in sorted(recognized, key=lambda x: x[2])]
+        _recognized = sorted(recognized, key=lambda x: x[2])
+        id_list = [[model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] for x in rec[0] if x in model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY]] for rec in _recognized]
         for k in range(len(id_list)):
             ids = id_list[k]
             if len(ids) < 2:
@@ -346,13 +347,13 @@ class Recognizer():
                 #si[j] = 0
                 si.append(0)
                 #src[j] = srcs[recognized[k][4][j]]
-                src.append(srcs[recognized[k][4][j]])
+                src.append(srcs[_recognized[k][4][j]])
                 #ei[j] = len(src[j])
                 ei.append(len(src[j]))
                 if k > 0:
-                    si[j] = recognized[k-1][3]
+                    si[j] = _recognized[k-1][5][0][1]
                 if k < len(id_list) - 1:
-                    ei[j] = recognized[k+1][2]
+                    ei[j] = _recognized[k+1][5][0][0]
                 #tokens[j] = src[j][si[j]:ei[j]]
                 tokens.append(src[j][si[j]:ei[j]])
                 #s_tokens[j] = set(tokens[j].split(word_separator))
@@ -369,10 +370,10 @@ class Recognizer():
                     winner_id.clear()
                 if kwd_score[i] == winner_score:
                     winner_id.add(i)
-            recognized[k] = tuple([[x for x in recognized[k][0] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id]] + [{x: recognized[k][1][x] for x in recognized[k][1] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id}] + list(recognized[k])[2:])
+            _recognized[k] = tuple([[x for x in _recognized[k][0] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id]] + [{x: _recognized[k][1][x] for x in _recognized[k][1] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id}] + list(_recognized[k])[2:])
+        return _recognized
 
     def flatten_layers(self, model, layers):
-        ret = []
         spans = {}
         srcs = []
         for i in range(0, len(layers)):
@@ -393,27 +394,29 @@ class Recognizer():
             new_ids = []
             new_attrs = {}
             new_srcids = []
+            new_locations = []
             for item in spans[location]:
                 new_ids += item[0]
                 new_attrs = {**new_attrs, **item[1]}
                 new_srcids += item[2]
-            new_layers.append(tuple([new_ids, new_attrs, new_left, new_right, new_srcids]))
-        self.disambiguate(model, new_layers, srcs, ' ')
-        return layers
+                new_locations.append(tuple([item[3], item[4]]))
+            new_layers.append(tuple([new_ids, new_attrs, new_left, new_right, new_srcids, new_locations]))
+        if model[model.KEYWORDS_KEY] is not None:
+            new_layers = self.disambiguate(model, new_layers, srcs, ' ')
+            pass
+        ret = [x[0:4] for x in new_layers]
+        return ret
 
-    def flatten_spans(self, layers):
+    def flatten_spans(self, recognized):
         ret = {}
         all_entries = []
-        for layer in layers:
-            _map = layer[0]
-            _recognized = layer[1]
-            for span in _recognized:
-                _ids, _content, _left, _right = span[0], span[1], _map[span[3]], _map[span[4]]
-                for _id in _ids:
-                    _attrs = _content[_id]
-                    for _attr_name in _attrs:
-                        for _attr_value in _attrs[_attr_name]:
-                            all_entries.append(tuple([_left, _right, _attr_name, _attr_value]))
+        for span in recognized:
+            _ids, _content, _left, _right = span[0], span[1], span[2], span[3]
+            for _id in _ids:
+                _attrs = _content[_id]
+                for _attr_name in _attrs:
+                    for _attr_value in _attrs[_attr_name]:
+                        all_entries.append(tuple([_left, _right, _attr_name, _attr_value]))
         if len(all_entries) > 0:
             all_entries = sorted(sorted(all_entries, key=lambda x: -x[1]), key=lambda x: x[0])
             filtered_entries = [all_entries[0]]
