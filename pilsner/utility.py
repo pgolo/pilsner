@@ -171,13 +171,7 @@ class Recognizer():
         unpacked_trie_pointer[radix[-1:]] = packed_trie[radix]
         return unpacked_trie
 
-    def check_attrs(self, model, trie_leaf, cur, specs, include_query, exclude_query, process_exclude, attrs_out_query):
-        trie_leaf[model.ATTRS_KEY] = self.attribute_unpacker(cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
-        if len(trie_leaf[model.ATTRS_KEY]) == 0:
-            return {}
-        return trie_leaf
-
-    def attribute_unpacker(self, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
+    def unpack_attributes(self, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
         attributes = {}
         include = set()
         exclude = set()
@@ -202,6 +196,12 @@ class Recognizer():
                 attributes[n][attr_name].append(attr_value)
         return attributes
 
+    def check_attrs(self, model, trie_leaf, cur, include_query, exclude_query, process_exclude, attrs_out_query):
+        trie_leaf[model.ATTRS_KEY] = self.unpack_attributes(cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
+        if len(trie_leaf[model.ATTRS_KEY]) == 0:
+            return {}
+        return trie_leaf
+
     def spot_entities(self, model, source_string, normalizer_name, include_query='', exclude_query='', process_exclude=False, attrs_out_query='', progress_from=0, progress_to=100):
         # TODO: review for refactoring
         self.logger('Analyzing "%s"... ' % (source_string))
@@ -224,7 +224,6 @@ class Recognizer():
             temporary_index = -1
             total_length = len(source_string)
             increment_chars = int(total_length / progress_share) if total_length > progress_share else total_length - 1
-            dictionary_specs = trie[model.SPECS_KEY]['fields'].keys()
             while current_index < total_length:
                 this_progress_position = int(current_index / increment_chars / total_tries)
                 if this_progress_position != last_progress_position:
@@ -242,7 +241,7 @@ class Recognizer():
                     end_index = current_index
                     character = source_string[current_index]
                     if character == word_separator and model.ENTITY_KEY in subtrie:
-                        found_object = self.check_attrs(model, subtrie, model.cursor, dictionary_specs, include_query, exclude_query, process_exclude, attrs_out_query)
+                        found_object = self.check_attrs(model, subtrie, model.cursor, include_query, exclude_query, process_exclude, attrs_out_query)
                         if found_object:
                             identified = found_object[model.ENTITY_KEY], found_object[model.ATTRS_KEY]
                             shorter_alternative = (identified[0], identified[1], string_so_far, start_index + 1, end_index)
@@ -255,7 +254,7 @@ class Recognizer():
                         #if everything_or_nothing and current_index == total_length: return []
                         if character == word_separator or current_index == total_length: # - 1:
                             if model.ENTITY_KEY in subtrie:
-                                found_object = self.check_attrs(model, subtrie, model.cursor, dictionary_specs, include_query, exclude_query, process_exclude, attrs_out_query)
+                                found_object = self.check_attrs(model, subtrie, model.cursor, include_query, exclude_query, process_exclude, attrs_out_query)
                                 if found_object:
                                     identified = found_object[model.ENTITY_KEY], found_object[model.ATTRS_KEY]
                                     ret.append((identified[0], identified[1], string_so_far, start_index + 1, end_index))
@@ -284,7 +283,7 @@ class Recognizer():
                         subtrie = trie[model.CONTENT_KEY][normalizer_name]
                 current_index += 1
             if model.ENTITY_KEY in subtrie:
-                found_object = self.check_attrs(model, subtrie, model.cursor, dictionary_specs, include_query, exclude_query, process_exclude, attrs_out_query)
+                found_object = self.check_attrs(model, subtrie, model.cursor, include_query, exclude_query, process_exclude, attrs_out_query)
                 if found_object:
                     identified = found_object[model.ENTITY_KEY], found_object[model.ATTRS_KEY]
                     ret.append((identified[0], identified[1], string_so_far, start_index + 1, current_index - 1))
@@ -374,10 +373,10 @@ class Recognizer():
         ret = [x[0:4] for x in new_layers]
         return ret
 
-    def flatten_spans(self, recognized):
+    def flatten_spans(self, spans):
         ret = {}
         all_entries = []
-        for span in recognized:
+        for span in spans:
             _ids, _content, _left, _right = span[0], span[1], span[2], span[3]
             for _id in _ids:
                 _attrs = _content[_id]
