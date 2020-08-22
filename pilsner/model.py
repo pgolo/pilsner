@@ -202,6 +202,8 @@ class Model(dict):
                     normalizer_name = self[self.DEFAULT_NORMALIZER_KEY]
                 elif columns[specs['tokenizer'][0]] in self.normalizer_map and self.normalizer_map[columns[specs['tokenizer'][0]]] in self[self.NORMALIZER_KEY]:
                     normalizer_name = self.normalizer_map[columns[specs['tokenizer'][0]]]
+            else:
+                normalizer_name = self[self.DEFAULT_NORMALIZER_KEY]
         if normalizer_name is not None:
             synonym = self[self.NORMALIZER_KEY][normalizer_name].normalize(synonym, word_separator, tokenizer_option)
         return synonym, normalizer_name
