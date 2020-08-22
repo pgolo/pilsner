@@ -186,29 +186,180 @@ class TestUtility(unittest.TestCase):
         unpacked_trie = self.recognizer.unpack_trie(model=model, packed_trie=packed_trie, compressed=True)
         assert unpacked_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(unpacked_trie))
 
-    def test_check_attrs(self):
-        pass
+    def test_unpack_attributes(self):
+        _, model = self.compile_test_model()
+        cur = model.cursor
+        leaf_ids = [8]
+        include_query  = ''
+        exclude_query = ''
+        process_exclude = False
+        attrs_out_query = ''
+        expected = {8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer1'], 'some_attribute': ['A', 'B', 'C']}}
+        attributes = self.recognizer.unpack_attributes(cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query)
+        assert attributes == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(attributes))
 
-    def test_attribute_unpacker(self):
-        pass
+    def test_check_attrs(self):
+        _, model = self.compile_test_model()
+        trie_leaf = {model.ENTITY_KEY: [8]}
+        cur = model.cursor
+        include_query  = ''
+        exclude_query = ''
+        process_exclude = False
+        attrs_out_query = ''
+        expected = {model.ENTITY_KEY: [8], model.ATTRS_KEY: {8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer1'], 'some_attribute': ['A', 'B', 'C']}}}
+        got_leaf = self.recognizer.check_attrs(model, trie_leaf, cur, include_query, exclude_query, process_exclude, attrs_out_query)
+        assert got_leaf == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(got_leaf))
 
     def test_spot_entities(self):
-        pass
+        _, model = self.compile_test_model()
+        source_string = 'this is awesome white refrigerator , and this is not'
+        normalizer_name = 't1'
+        expected = [([4], {4: {'entity_id': ['entity1'], 'normalizer': ['tokenizer1'], 'some_attribute': ['A', 'B', 'C']}}, 'awesome white refrigerator', 8, 34)]
+        spotted = self.recognizer.spot_entities(model, source_string, normalizer_name)
+        assert spotted == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(spotted))
 
     def test_disambiguate(self):
-        pass
+        _, model = self.compile_test_model()
+        # source string: this is awwsome and conflicting refrigerator, hey
+        # spotted span
+        spotted = [
+            (
+                [8, 2], # internal IDs
+                {
+                    8: {'DType': ['tokenizer1'], 'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}, # attrs for each internal ID
+                    2: {'DType': ['tokenizer2'], 'MSID': ['entity2'], 'smth': ['D', 'E']} # attrs for each internal ID
+                },
+                20, 44, # location (mapped)
+                [0, 1], # indexes of items in srcs (normalized source strings)
+                [
+                    (20, 44), # location[0] (unmapped)
+                    (20, 44)  # location[1] (unmapped)
+                ]
+            )
+        ]
+        # normalized source strings
+        srcs =  [
+            'this is awwsome and conflicting refrigerator , hey',
+            'this is awwsome and conflicting refrigerator , hey'
+        ]
+        word_separator = ' '
+        # given a sample model, we expect internal ID == 2 to be removed
+        expected = [
+            (
+                [8],
+                {
+                    8: {'DType': ['tokenizer1'], 'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}
+                },
+                20, 44,
+                [0, 1],
+                [
+                    (20, 44),
+                    (20, 44)
+                ]
+            )
+        ]
+        disambiguated = self.recognizer.disambiguate(model, spotted, srcs, word_separator)
+        assert disambiguated == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(disambiguated))
 
     def test_flatten_layers(self):
-        pass
+        _, model = self.compile_test_model()
+        # two normalization layers; first has one span; second has two spans
+        layers = [
+            (
+                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71],
+                [
+                    (
+                        [4],
+                        {4: {'DType': ['tokenizer1'], 'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}},
+                        'awesome white refrigerator',
+                        47, 72
+                    )
+                ],
+                'this is awwsome white refrigerator , and it is awesome white refrigerator'
+            ),
+            (
+                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71],
+                [
+                    (
+                        [5],
+                        {5: {'DType': ['tokenizer2'], 'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}},
+                        'awwsome refrigerator',
+                        8, 28
+                    ),
+                    (
+                        [6],
+                        {6: {'DType': ['tokenizer2'], 'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}},
+                        'it',
+                        35, 37
+                    )
+                ],
+                'this is awwsome refrigerator , and it is awesome refrigerator'
+            )
+        ]
+        # we expect all three spans to get stacked in one list (without strings themselves, and with mapped locations)
+        expected = [
+            (
+                [5],
+                {5: {'DType': ['tokenizer2'], 'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}},
+                8, 34
+            ),
+            (
+                [6],
+                {6: {'DType': ['tokenizer2'], 'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}},
+                40, 42
+            ),
+            (
+                [4],
+                {4: {'DType': ['tokenizer1'], 'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}},
+                46, 71
+            )
+        ]
+        flattened = self.recognizer.flatten_layers(model, layers)
+        assert flattened == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(flattened))
 
     def test_flatten_spans(self):
-        pass
+        spans = [
+            (
+                [5],
+                {5: {'DType': ['tokenizer2'], 'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}},
+                8, 34
+            ),
+            (
+                [6],
+                {6: {'DType': ['tokenizer2'], 'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}},
+                40, 42
+            ),
+            (
+                [4],
+                {4: {'DType': ['tokenizer1'], 'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}},
+                46, 71
+            )
+        ]
+        expected = {
+            (8, 34): {'DType': {'tokenizer2'}, 'MSID': {'entity1'}, 'smth': {'C', 'B', 'A'}},
+            (40, 42): {'DType': {'tokenizer2'}, 'MSID': {'entity1'}, 'smth': {'C', 'B', 'A'}},
+            (46, 71): {'DType': {'tokenizer1'}, 'MSID': {'entity1'}, 'smth': {'C', 'B', 'A'}}
+        }
+        flattened = self.recognizer.flatten_spans(spans)
+        assert flattened == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(flattened))
 
     def test_reduce_spans(self):
-        pass
+        segments = [tuple([1, 2]), tuple([3, 8]), tuple([1, 6]), tuple([2, 3])]
+        expected = [tuple([1, 6])]
+        reduced = self.recognizer.reduce_spans(segments)
+        assert reduced == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(reduced))
 
     def test_parse(self):
-        pass
+        _, model = self.compile_test_model()
+        source_string = 'this is awwsome white refrigerator o refrigerator, is it tors not conflicting refrigerator hey'
+        expected = {
+            (8, 34): {'entity_id': {'entity1'}, 'normalizer': {'tokenizer2'}, 'some_attribute': {'C', 'B', 'A'}},
+            (35, 36): {'entity_id': {'entity1'}, 'normalizer': {'tokenizer2'}, 'some_attribute': {'C', 'B', 'A'}},
+            (54, 56): {'entity_id': {'entity1'}, 'normalizer': {'tokenizer2'}, 'some_attribute': {'C', 'B', 'A'}},
+            (66, 90): {'entity_id': {'entity2'}, 'normalizer': {'tokenizer2'}, 'some_attribute': {'D', 'E'}}
+        }
+        output = self.recognizer.parse(model, source_string)
+        assert output == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(output))
 
 if __name__ == '__main__':
     unittest.main()
