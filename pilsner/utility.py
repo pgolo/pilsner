@@ -308,7 +308,7 @@ class Recognizer():
             src = []
             ei = []
             tokens = []
-            s_tokens = []
+            s_tokens = {}
             for j in range(len(ids)):
                 #si[j] = 0
                 si.append(0)
@@ -323,7 +323,8 @@ class Recognizer():
                 #tokens[j] = src[j][si[j]:ei[j]]
                 tokens.append(src[j][si[j]:ei[j]])
                 #s_tokens[j] = set(tokens[j].split(word_separator))
-                s_tokens.append(set(tokens[j].split(word_separator)))
+                #s_tokens.append(set(tokens[j].split(word_separator)))
+                s_tokens[ids[j]] = set(tokens[j].split(word_separator))
             tmp = {i: model[model.KEYWORDS_KEY][model.CONTENT_KEY][i] if i in model[model.KEYWORDS_KEY][model.CONTENT_KEY] else set() for i in ids}
             kwd = {i: tmp[i] - tmp[j] for i in tmp for j in tmp if j != i}
             winner_score = 0
