@@ -45,7 +45,7 @@ class Recognizer():
         logging.debug('Done compiling specs')
         return specs
 
-    def make_recognizer(self, model, filename, specs, word_separator, item_limit, compressed, column_separator, cell_wall, tokenizer_option):
+    def make_recognizer(self, model, filename, specs, word_separator, item_limit, compressed, column_separator, column_enclosure, tokenizer_option):
         # TODO: review for refactoring
         self.logger('Making recognizer using %s' % (filename))
         self.push_message('Making recognizer using %s' % (filename), self.callback_status)
@@ -77,7 +77,7 @@ class Recognizer():
                     trie = model.next_trie(specs, compressed, tokenizer_option, word_separator)
                     self.logger('Lines read: %d' % (line_count))
                     line_count = 0
-                columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_number, line, column_separator, cell_wall)
+                columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_number, line, column_separator, column_enclosure)
                 synonym, normalizer_name = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)
                 subtrie = trie[model.CONTENT_KEY][normalizer_name]
                 for character in synonym:
@@ -96,7 +96,7 @@ class Recognizer():
         self.logger('Recognizer completed.')
         return ret, line_numbers
 
-    def make_keywords(self, model, filename, specs, line_numbers, word_separator, disambiguate_all, column_separator, cell_wall, tokenizer_option):
+    def make_keywords(self, model, filename, specs, line_numbers, word_separator, disambiguate_all, column_separator, column_enclosure, tokenizer_option):
         self.logger('Making keywords using %s... ' % (filename))
         self.push_message('Making keywords from {0}'.format(filename), self.callback_status)
         total_bytes = os.path.getsize(filename) + 1
@@ -115,7 +115,7 @@ class Recognizer():
                 if this_progress_position != last_progress_position:
                     last_progress_position = this_progress_position
                     self.push_message(int(100 * chars_read / total_bytes), self.callback_progress)
-                columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_count, line, column_separator, cell_wall)
+                columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_count, line, column_separator, column_enclosure)
                 internal_id_map[line_count] = internal_id
                 synonym, _ = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)
                 if synonym not in synonyms:
@@ -132,7 +132,7 @@ class Recognizer():
         with open(filename, mode='r', encoding='utf8') as f:
             line_count = 0
             for line in f:
-                columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_count, line, column_separator, cell_wall)
+                columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_count, line, column_separator, column_enclosure)
                 if internal_id in overlapping_ids:
                     synonym, _ = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)
                     tokens = synonym.split(word_separator)
@@ -143,11 +143,11 @@ class Recognizer():
         self.logger('Done compiling keywords.')
         return keywords
 
-    def compile_model(self, model, filename, specs, word_separator, column_separator, cell_wall, compressed=True, item_limit=0, tokenizer_option=0, include_keywords=False, disambiguate_all=False):
-        tries, line_numbers = self.make_recognizer(model, filename, specs, word_separator, item_limit, compressed, column_separator, cell_wall, tokenizer_option)
+    def compile_model(self, model, filename, specs, word_separator, column_separator, column_enclosure, compressed=True, item_limit=0, tokenizer_option=0, include_keywords=False, disambiguate_all=False):
+        tries, line_numbers = self.make_recognizer(model, filename, specs, word_separator, item_limit, compressed, column_separator, column_enclosure, tokenizer_option)
         keywords = {model.CONTENT_KEY: {}, model.INTERNAL_ID_KEY: {}}
         if include_keywords:
-            keywords = self.make_keywords(model, filename, specs, line_numbers, word_separator, disambiguate_all, column_separator, cell_wall, tokenizer_option)
+            keywords = self.make_keywords(model, filename, specs, line_numbers, word_separator, disambiguate_all, column_separator, column_enclosure, tokenizer_option)
         model[model.DICTIONARY_KEY] = tries
         model[model.KEYWORDS_KEY] = keywords
         return True
@@ -317,9 +317,20 @@ class Recognizer():
                 #ei[j] = len(src[j])
                 ei.append(len(src[j]))
                 if k > 0:
+                    # !!! TODO: rather than this, take map of normalizer [k-1] and remap location on map of normalizer[k] as a boundary
                     si[j] = _recognized[k-1][5][0][1]
+                    # m = k - 1
+                    # while m > 0 and _recognized[k][4][j] not in _recognized[m][4]:
+                    #     m -= 1
+                    # if _recognized[k][4][j] in _recognized[k-1][4]:
+                    #     si[j] = _recognized[m][5][0][1]
                 if k < len(id_list) - 1:
                     ei[j] = _recognized[k+1][5][0][0]
+                    # m = k + 1
+                    # while m < len(id_list) - 1 and _recognized[k][4][j] not in _recognized[m][4]:
+                    #     m += 1
+                    # if _recognized[k][4][j] in _recognized[m][4]:
+                    #     ei[j] = _recognized[m][5][0][0]
                 #tokens[j] = src[j][si[j]:ei[j]]
                 tokens.append(src[j][si[j]:ei[j]])
                 #s_tokens[j] = set(tokens[j].split(word_separator))
