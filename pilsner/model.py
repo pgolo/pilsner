@@ -182,8 +182,8 @@ class Model(dict):
             else:
                 _ = [self.cursor.execute('insert into attrs (n, iid, attr_name, attr_value) select ?, ?, ?, ?;', (line_number, internal_id, k, s)) for s in set(columns[specs['fields'][k][0]].split(specs['fields'][k][1]))]
 
-    def get_dictionary_line(self, specs, entity_ids, line_numbers, line_number, line, column_separator, cell_wall):
-        columns = [x.strip(cell_wall) for x in line.split(column_separator)]
+    def get_dictionary_line(self, specs, entity_ids, line_numbers, line_number, line, column_separator, column_enclosure):
+        columns = [x.strip(column_enclosure) for x in line.strip('\n').split(column_separator)]
         if line_number in line_numbers:
             internal_id = line_numbers[line_number]
         else:
