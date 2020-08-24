@@ -25,7 +25,7 @@ class TestUtility(unittest.TestCase):
             'tokenizer1': 't1',
             'tokenizer2': 't2'
         }
-        compiled = self.recognizer.compile_model(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', column_separator='\t', cell_wall='\n', include_keywords=True)
+        compiled = self.recognizer.compile_model(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', column_separator='\t', column_enclosure='', include_keywords=True)
         return compiled, model
 
     def test_init(self):
@@ -78,7 +78,7 @@ class TestUtility(unittest.TestCase):
         ]
         specs = self.recognizer.compile_dict_specs(fields)
         model = pilsner.Model()
-        got_recognizer, got_line_numbers = self.recognizer.make_recognizer(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', item_limit=0, compressed=True, column_separator='\t', cell_wall='\n', tokenizer_option=0)
+        got_recognizer, got_line_numbers = self.recognizer.make_recognizer(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', item_limit=0, compressed=True, column_separator='\t', column_enclosure='', tokenizer_option=0)
         expected_recognizer = [
             {
                 model.SPECS_KEY: {
@@ -123,8 +123,8 @@ class TestUtility(unittest.TestCase):
         ]
         specs = self.recognizer.compile_dict_specs(fields)
         model = pilsner.Model()
-        _, got_line_numbers = self.recognizer.make_recognizer(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', item_limit=0, compressed=True, column_separator='\t', cell_wall='\n', tokenizer_option=0)
-        keywords = self.recognizer.make_keywords(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, line_numbers=got_line_numbers, word_separator=' ', disambiguate_all=False, column_separator='\t', cell_wall='\n', tokenizer_option=0)
+        _, got_line_numbers = self.recognizer.make_recognizer(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', item_limit=0, compressed=True, column_separator='\t', column_enclosure='', tokenizer_option=0)
+        keywords = self.recognizer.make_keywords(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, line_numbers=got_line_numbers, word_separator=' ', disambiguate_all=False, column_separator='\t', column_enclosure='', tokenizer_option=0)
         expected = {
             model.CONTENT_KEY: {
                 0: {'refrigerator', 'white', 'awesome', 'conflicting', 'refrigerators', 'refrigeratorx'},

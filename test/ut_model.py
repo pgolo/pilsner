@@ -124,8 +124,8 @@ class TestModel(unittest.TestCase):
         line_number = 1
         line = 't1\tentity_id\tstring_value\tsome_attr,another_attr\n'
         column_separator = '\t'
-        cell_wall = '\n'
-        got_line = self.model.get_dictionary_line(specs, entity_ids, line_numbers, line_number, line, column_separator, cell_wall)
+        column_enclosure = ''
+        got_line = self.model.get_dictionary_line(specs, entity_ids, line_numbers, line_number, line, column_separator, column_enclosure)
         expected = (['t1', 'entity_id', 'string_value', 'some_attr,another_attr'], 0)
         assert got_line == expected, 'Expected %s, got %s' % (str(expected), str(got_line))
 
