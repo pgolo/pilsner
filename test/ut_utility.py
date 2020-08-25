@@ -362,4 +362,8 @@ class TestUtility(unittest.TestCase):
         assert output == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(output))
 
 if __name__ == '__main__':
-    unittest.main()
+    #unittest.main()
+    x = TestUtility()
+    x.setUp()
+    x.compile_test_model()
+    x.test_parse()

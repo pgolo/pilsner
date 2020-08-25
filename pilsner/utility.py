@@ -307,7 +307,7 @@ class Recognizer():
             si = []
             src = []
             ei = []
-            tokens = []
+            tokens = {}
             s_tokens = {}
             for j in range(len(ids)):
                 #si[j] = 0
@@ -318,24 +318,27 @@ class Recognizer():
                 ei.append(len(src[j]))
                 if k > 0:
                     # !!! TODO: rather than this, take map of normalizer [k-1] and remap location on map of normalizer[k] as a boundary
-                    si[j] = _recognized[k-1][5][0][1]
+                    #si[j] = _recognized[k-1][5][0][1]
+                    si[j] = _recognized[k][6][j][_recognized[k-1][3]]
                     # m = k - 1
                     # while m > 0 and _recognized[k][4][j] not in _recognized[m][4]:
                     #     m -= 1
                     # if _recognized[k][4][j] in _recognized[k-1][4]:
                     #     si[j] = _recognized[m][5][0][1]
                 if k < len(id_list) - 1:
-                    ei[j] = _recognized[k+1][5][0][0]
+                    #ei[j] = _recognized[k+1][5][0][0]
+                    ei[j] = _recognized[k][6][j][_recognized[k+1][2]]
                     # m = k + 1
                     # while m < len(id_list) - 1 and _recognized[k][4][j] not in _recognized[m][4]:
                     #     m += 1
                     # if _recognized[k][4][j] in _recognized[m][4]:
                     #     ei[j] = _recognized[m][5][0][0]
                 #tokens[j] = src[j][si[j]:ei[j]]
-                tokens.append(src[j][si[j]:ei[j]])
+                #tokens.append(src[j][si[j]:ei[j]])
+                tokens[ids[j]] = src[j][si[j]:ei[j]]
                 #s_tokens[j] = set(tokens[j].split(word_separator))
                 #s_tokens.append(set(tokens[j].split(word_separator)))
-                s_tokens[ids[j]] = set(tokens[j].split(word_separator))
+                s_tokens[ids[j]] = set(tokens[ids[j]].split(word_separator))
             tmp = {i: model[model.KEYWORDS_KEY][model.CONTENT_KEY][i] if i in model[model.KEYWORDS_KEY][model.CONTENT_KEY] else set() for i in ids}
             kwd = {i: tmp[i] - tmp[j] for i in tmp for j in tmp if j != i}
             winner_score = 0
@@ -364,7 +367,7 @@ class Recognizer():
                 location = tuple([_map[span[3]], _map[span[4]]])
                 if location not in spans:
                     spans[location] = []
-                spans[location].append(tuple([span[0], span[1], [i] * len(span[0]), span[3], span[4]]))
+                spans[location].append(tuple([span[0], span[1], [i] * len(span[0]), span[3], span[4], _map]))
         new_layers = []
         for location in spans:
             new_left = location[0]
@@ -373,12 +376,14 @@ class Recognizer():
             new_attrs = {}
             new_srcids = []
             new_locations = []
+            new_map = []
             for item in spans[location]:
                 new_ids += item[0]
                 new_attrs = {**new_attrs, **item[1]}
                 new_srcids += item[2]
                 new_locations.append(tuple([item[3], item[4]]))
-            new_layers.append(tuple([new_ids, new_attrs, new_left, new_right, new_srcids, new_locations]))
+                new_map.append(item[5])
+            new_layers.append(tuple([new_ids, new_attrs, new_left, new_right, new_srcids, new_locations, new_map]))
         if model[model.KEYWORDS_KEY] is not None:
             new_layers = self.disambiguate(model, new_layers, srcs, ' ')
             pass
