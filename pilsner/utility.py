@@ -319,7 +319,7 @@ class Recognizer():
                 if k > 0:
                     # !!! TODO: rather than this, take map of normalizer [k-1] and remap location on map of normalizer[k] as a boundary
                     #si[j] = _recognized[k-1][5][0][1]
-                    si[j] = _recognized[k][6][j][_recognized[k-1][3]]
+                    si[j] = _recognized[k][6][j][_recognized[k-1][5][0][1]]
                     # m = k - 1
                     # while m > 0 and _recognized[k][4][j] not in _recognized[m][4]:
                     #     m -= 1
@@ -327,7 +327,7 @@ class Recognizer():
                     #     si[j] = _recognized[m][5][0][1]
                 if k < len(id_list) - 1:
                     #ei[j] = _recognized[k+1][5][0][0]
-                    ei[j] = _recognized[k][6][j][_recognized[k+1][2]]
+                    ei[j] = _recognized[k][6][j][_recognized[k+1][4][0][1]]
                     # m = k + 1
                     # while m < len(id_list) - 1 and _recognized[k][4][j] not in _recognized[m][4]:
                     #     m += 1
