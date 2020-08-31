@@ -304,22 +304,32 @@ class Recognizer():
             ids = id_list[k]
             if len(ids) < 2:
                 continue
-            si = []
-            src = []
-            ei = []
+            si = {}
+            src = {}
+            ei = {}
             tokens = {}
             s_tokens = {}
             for j in range(len(ids)):
                 #si[j] = 0
-                si.append(0)
+                #si.append(0)
+                si[ids[j]] = 0
                 #src[j] = srcs[recognized[k][4][j]]
-                src.append(srcs[_recognized[k][4][j]])
+                #src.append(srcs[_recognized[k][4][j]])
+                src[ids[j]] = srcs[_recognized[k][4][j]]
                 #ei[j] = len(src[j])
-                ei.append(len(src[j]))
+                #ei.append(len(src[j]))
+                ei[ids[j]] = len(src[ids[j]])
+
                 if k > 0:
                     # !!! TODO: rather than this, take map of normalizer [k-1] and remap location on map of normalizer[k] as a boundary
                     #si[j] = _recognized[k-1][5][0][1]
-                    si[j] = _recognized[k][6][j][_recognized[k-1][5][0][1]]
+                    
+                    #si[ids[j]] = _recognized[k][6][ _recognized[k][4][j]  ][_recognized[k-1][5][0][1]]
+                    
+                    # See above, think
+                    if _recognized[k-1][5][0][1] > si[ids[j]]:
+                        si[ids[j]] = _recognized[k-1][5][0][1]
+
                     # m = k - 1
                     # while m > 0 and _recognized[k][4][j] not in _recognized[m][4]:
                     #     m -= 1
@@ -327,7 +337,11 @@ class Recognizer():
                     #     si[j] = _recognized[m][5][0][1]
                 if k < len(id_list) - 1:
                     #ei[j] = _recognized[k+1][5][0][0]
-                    ei[j] = _recognized[k][6][j][_recognized[k+1][4][0][1]]
+                    
+                    #ei[ids[j]] = _recognized[k][6][ _recognized[k][4][j]  ][_recognized[k+1][5][0][0]]
+
+                    if _recognized[k+1][5][0][0] < ei[ids[j]]:
+                        ei[ids[j]] = _recognized[k+1][5][0][0]
                     # m = k + 1
                     # while m < len(id_list) - 1 and _recognized[k][4][j] not in _recognized[m][4]:
                     #     m += 1
@@ -335,10 +349,15 @@ class Recognizer():
                     #     ei[j] = _recognized[m][5][0][0]
                 #tokens[j] = src[j][si[j]:ei[j]]
                 #tokens.append(src[j][si[j]:ei[j]])
-                tokens[ids[j]] = src[j][si[j]:ei[j]]
+                
+                #tokens[ids[j]] = src[j][si[j]:ei[j]]
+                tokens[ids[j]] = src[ids[j]][si[ids[j]]:ei[ids[j]]]
+
                 #s_tokens[j] = set(tokens[j].split(word_separator))
                 #s_tokens.append(set(tokens[j].split(word_separator)))
                 s_tokens[ids[j]] = set(tokens[ids[j]].split(word_separator))
+            # tmp = {i: model[model.KEYWORDS_KEY][model.CONTENT_KEY][i] if i in model[model.KEYWORDS_KEY][model.CONTENT_KEY] else set() for i in ids}
+            # kwd = {i: tmp[i] - tmp[j] for i in tmp for j in tmp if j != i}
             tmp = {i: model[model.KEYWORDS_KEY][model.CONTENT_KEY][i] if i in model[model.KEYWORDS_KEY][model.CONTENT_KEY] else set() for i in ids}
             kwd = {i: tmp[i] - tmp[j] for i in tmp for j in tmp if j != i}
             winner_score = 0
