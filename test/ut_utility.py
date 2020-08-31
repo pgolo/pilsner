@@ -107,7 +107,7 @@ class TestUtility(unittest.TestCase):
             3: 1,
             4: 1,
             5: 1,
-            6: 1,
+            6: 0,
             7: 1,
             8: 1
         }
@@ -127,8 +127,8 @@ class TestUtility(unittest.TestCase):
         keywords = self.recognizer.make_keywords(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, line_numbers=got_line_numbers, word_separator=' ', disambiguate_all=False, column_separator='\t', column_enclosure='', tokenizer_option=0)
         expected = {
             model.CONTENT_KEY: {
-                0: {'refrigerator', 'white', 'awesome', 'conflicting', 'refrigerators', 'refrigeratorx'},
-                1: {'o', 'white', 'conflicting', 'refrigerators', 'awwsome', 'it', 'refrigerator', 'awesome', 'refrigerator'}
+                0: {'it', 'refrigeratorx', 'white', 'awesome', 'refrigerator', 'conflicting', 'refrigerators'},
+                1: {'conflicting', 'white', 'awesome', 'refrigerator', 'o', 'refrigerators', 'awwsome'}
             },
             model.INTERNAL_ID_KEY: {
                 0: 0,
@@ -137,7 +137,7 @@ class TestUtility(unittest.TestCase):
                 3: 1,
                 4: 1,
                 5: 1,
-                6: 1,
+                6: 0,
                 7: 1,
                 8: 1
             }
@@ -175,7 +175,7 @@ class TestUtility(unittest.TestCase):
                 model.CONTENT_KEY: {'t1': {'a': {'wesome white refrigera': {' ': {'tors': {model.ENTITY_KEY: [0]}}, 't': {'or': {'x': {model.ENTITY_KEY: [1]}, model.ENTITY_KEY: [4]}}}}, 'c': {'onflicting refrigerator': {model.ENTITY_KEY: [8]}}}, 't2': {'c': {'onflicting refrigerator': {model.ENTITY_KEY: [2]}}, 'a': {'w': {'e': {'some refrigerators': {model.ENTITY_KEY: [3]}}, 'w': {'some refrigerator': {model.ENTITY_KEY: [5]}}}}, 'i': {'t': {model.ENTITY_KEY: [6]}}, 'o': {model.ENTITY_KEY: [7]}}}
             }
         ]
-        expected_keywords = {model.CONTENT_KEY: {0: {'refrigera', 'refrigeratorx', 'tors', 'refrigerator', 'white', 'awesome', 'conflicting'}, 1: {'it', 'o', 'awwsome', 'white', 'refrigerator', 'refrigerator', 'conflicting', 'refrigerators', 'awesome'}}, model.INTERNAL_ID_KEY: {0: 0, 1: 0, 2: 0, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1}}
+        expected_keywords = {model.CONTENT_KEY: {0: {'refrigerator', 'tors', 'it', 'refrigera', 'white', 'conflicting', 'awesome', 'refrigeratorx'}, 1: {'refrigerator', 'refrigerators', 'white', 'o', 'conflicting', 'awwsome', 'awesome'}}, model.INTERNAL_ID_KEY: {0: 0, 1: 0, 2: 0, 3: 1, 4: 1, 5: 1, 6: 0, 7: 1, 8: 1}}
         assert model[model.DICTIONARY_KEY] == expected_dictionary, '\nExpected\n%s\nGot\n%s' % (str(expected_dictionary), str(model[model.DICTIONARY_KEY]))
         assert model[model.KEYWORDS_KEY] == expected_keywords, '\nExpected\n%s\nGot\n%s' % (str(expected_keywords), str(model[model.KEYWORDS_KEY]))
 
@@ -355,15 +355,15 @@ class TestUtility(unittest.TestCase):
         expected = {
             (8, 34): {'entity_id': {'entity1'}, 'normalizer': {'tokenizer2'}, 'some_attribute': {'C', 'B', 'A'}},
             (35, 36): {'entity_id': {'entity1'}, 'normalizer': {'tokenizer2'}, 'some_attribute': {'C', 'B', 'A'}},
-            (54, 56): {'entity_id': {'entity1'}, 'normalizer': {'tokenizer2'}, 'some_attribute': {'C', 'B', 'A'}},
+            (54, 56): {'entity_id': {'entity2'}, 'normalizer': {'tokenizer2'}, 'some_attribute': {'C', 'B', 'A'}},
             (66, 90): {'entity_id': {'entity2'}, 'normalizer': {'tokenizer2'}, 'some_attribute': {'D', 'E'}}
         }
         output = self.recognizer.parse(model, source_string)
         assert output == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(output))
 
 if __name__ == '__main__':
-    #unittest.main()
-    x = TestUtility()
-    x.setUp()
-    x.compile_test_model()
-    x.test_parse()
+    unittest.main()
+    #x = TestUtility()
+    #x.setUp()
+    #x.compile_test_model()
+    #x.test_parse()
