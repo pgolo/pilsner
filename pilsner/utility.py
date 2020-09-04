@@ -327,8 +327,10 @@ class Recognizer():
                     #si[ids[j]] = _recognized[k][6][ _recognized[k][4][j]  ][_recognized[k-1][5][0][1]]
                     
                     # See above, think
-                    if _recognized[k-1][5][0][1] > si[ids[j]]:
-                        si[ids[j]] = _recognized[k-1][5][0][1]
+                    #if _recognized[k-1][5][0][1] > si[ids[j]]:
+                    if _recognized[k][7][ids[j]][_recognized[k-1][3]][1] > si[ids[j]]:
+                        #si[ids[j]] = _recognized[k-1][5][0][1]
+                        si[ids[j]] = _recognized[k][7][ids[j]][_recognized[k-1][3]][1]
 
                     # m = k - 1
                     # while m > 0 and _recognized[k][4][j] not in _recognized[m][4]:
@@ -340,8 +342,10 @@ class Recognizer():
                     
                     #ei[ids[j]] = _recognized[k][6][ _recognized[k][4][j]  ][_recognized[k+1][5][0][0]]
 
-                    if _recognized[k+1][5][0][0] < ei[ids[j]]:
-                        ei[ids[j]] = _recognized[k+1][5][0][0]
+                    #if _recognized[k+1][5][0][0] < ei[ids[j]]:
+                    if _recognized[k][7][ids[j]][_recognized[k+1][2]][0] < ei[ids[j]]:
+                        #ei[ids[j]] = _recognized[k+1][5][0][0]
+                        ei[ids[j]] = _recognized[k][7][ids[j]][_recognized[k+1][2]][0]
                     # m = k + 1
                     # while m < len(id_list) - 1 and _recognized[k][4][j] not in _recognized[m][4]:
                     #     m += 1
@@ -378,7 +382,8 @@ class Recognizer():
         srcs = []
         for i in range(0, len(layers)):
             layer = layers[i]
-            _map = layer[0]
+            _map = layer[0][0]
+            _r_map = layer[0][1]
             _recognized = layer[1]
             _src = layer[2]
             srcs.append(_src)
@@ -386,7 +391,7 @@ class Recognizer():
                 location = tuple([_map[span[3]], _map[span[4]]])
                 if location not in spans:
                     spans[location] = []
-                spans[location].append(tuple([span[0], span[1], [i] * len(span[0]), span[3], span[4], _map]))
+                spans[location].append(tuple([span[0], span[1], [i] * len(span[0]), span[3], span[4], _map, _r_map]))
         new_layers = []
         for location in spans:
             new_left = location[0]
@@ -395,15 +400,18 @@ class Recognizer():
             new_attrs = {}
             new_srcids = []
             new_locations = []
-            new_map = []
+            new_map = {}
+            new_r_map = {}
             for item in spans[location]:
                 new_ids += item[0]
                 new_attrs = {**new_attrs, **item[1]}
-                new_srcids += item[2]
-                new_locations.append(tuple([item[3], item[4]]))
-                new_map.append(item[5])
-            new_layers.append(tuple([new_ids, new_attrs, new_left, new_right, new_srcids, new_locations, new_map]))
-        if model[model.KEYWORDS_KEY] is not None:
+                if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY]:
+                    new_srcids += item[2]
+                    new_locations.append(tuple([item[3], item[4]]))
+                    new_map.update({model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][k]: item[5] for k in item[0]})
+                    new_r_map.update({model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][k]: item[6] for k in item[0]})
+            new_layers.append(tuple([new_ids, new_attrs, new_left, new_right, new_srcids, new_locations, new_map, new_r_map]))
+        if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY]:
             new_layers = self.disambiguate(model, new_layers, srcs, ' ')
             pass
         ret = [x[0:4] for x in new_layers]
@@ -495,10 +503,11 @@ class Recognizer():
         for normalizer_name in model[model.NORMALIZER_KEY]:
             normalized_string = model[model.NORMALIZER_KEY][normalizer_name].normalize(source_string, model[model.WORD_SEPARATOR_KEY], model[model.TOKENIZER_OPTION_KEY])
             character_map = model[model.NORMALIZER_KEY][normalizer_name].result['map']
+            r_character_map = model[model.NORMALIZER_KEY][normalizer_name].result['r_map']
             progress_from = current_normalizer_index * spot_progress_share
             progress_to = (current_normalizer_index + 1) * spot_progress_share
             parsed = self.spot_entities(model, normalized_string, normalizer_name, include_query, exclude_query, process_exclude, attrs_out_query, progress_from=progress_from, progress_to=progress_to)
-            rets.append((character_map, parsed, normalized_string))
+            rets.append(((character_map, r_character_map), parsed, normalized_string))
             current_normalizer_index += 1
         layers = self.flatten_layers(model, rets)
         spans = self.flatten_spans(layers)
