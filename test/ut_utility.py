@@ -172,7 +172,7 @@ class TestUtility(unittest.TestCase):
                 model.COMPRESSED_KEY: 1,
                 model.TOKENIZER_OPTION_KEY: 0,
                 model.WORD_SEPARATOR_KEY: ' ',
-                model.CONTENT_KEY: {'t1': {'a': {'wesome white refrigera': {' ': {'tors': {model.ENTITY_KEY: [0]}}, 't': {'or': {'x': {model.ENTITY_KEY: [1]}, model.ENTITY_KEY: [4]}}}}, 'c': {'onflicting refrigerator': {model.ENTITY_KEY: [8]}}}, 't2': {'c': {'onflicting refrigerator': {model.ENTITY_KEY: [2]}}, 'a': {'w': {'e': {'some refrigerators': {model.ENTITY_KEY: [3]}}, 'w': {'some refrigerator': {model.ENTITY_KEY: [5]}}}}, 'i': {'t': {model.ENTITY_KEY: [6]}}, 'o': {model.ENTITY_KEY: [7]}}}
+                model.CONTENT_KEY: {'t1': {'a': {'wesome white refrigera': {' ': {'tors': {'~i': [0]}}, 't': {'or': {'x': {'~i': [1]}, '~i': [4]}}}}}, 't2': {'c': {'onflicting refrigerator': {'~i': [2, 8]}}, 'a': {'w': {'e': {'some refrigerators': {'~i': [3]}}, 'w': {'some refrigerator': {'~i': [5]}}}}, 'i': {'t': {'~i': [6]}}, 'o': {'~i': [7]}}}
             }
         ]
         expected_keywords = {model.CONTENT_KEY: {0: {'refrigerator', 'tors', 'it', 'refrigera', 'white', 'conflicting', 'awesome', 'refrigeratorx'}, 1: {'refrigerator', 'refrigerators', 'white', 'o', 'conflicting', 'awwsome', 'awesome'}}, model.INTERNAL_ID_KEY: {0: 0, 1: 0, 2: 0, 3: 1, 4: 1, 5: 1, 6: 0, 7: 1, 8: 1}}
@@ -194,7 +194,7 @@ class TestUtility(unittest.TestCase):
         exclude_query = ''
         process_exclude = False
         attrs_out_query = ''
-        expected = {8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer1'], 'some_attribute': ['A', 'B', 'C']}}
+        expected = {8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer2'], 'some_attribute': ['A', 'B', 'C']}}
         attributes = self.recognizer.unpack_attributes(cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query)
         assert attributes == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(attributes))
 
@@ -206,7 +206,7 @@ class TestUtility(unittest.TestCase):
         exclude_query = ''
         process_exclude = False
         attrs_out_query = ''
-        expected = {model.ENTITY_KEY: [8], model.ATTRS_KEY: {8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer1'], 'some_attribute': ['A', 'B', 'C']}}}
+        expected = {model.ENTITY_KEY: [8], model.ATTRS_KEY: {8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer2'], 'some_attribute': ['A', 'B', 'C']}}}
         got_leaf = self.recognizer.check_attrs(model, trie_leaf, cur, include_query, exclude_query, process_exclude, attrs_out_query)
         assert got_leaf == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(got_leaf))
 
@@ -266,7 +266,10 @@ class TestUtility(unittest.TestCase):
         # two normalization layers; first has one span; second has two spans
         layers = [
             (
-                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71],
+                (
+                    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71],
+                    [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6], [7, 7], [8, 8], [9, 9], [10, 10], [11, 11], [12, 12], [13, 13], [14, 14], [15, 15], [16, 16], [17, 17], [18, 18], [19, 19], [20, 20], [21, 21], [22, 22], [23, 23], [24, 24], [25, 25], [26, 26], [27, 27], [28, 28], [29, 29], [30, 30], [31, 31], [32, 32], [33, 33], [34, 34], [35, 35], [36, 36], [37, 37], [38, 38], [39, 39], [40, 40], [41, 41], [42, 42], [43, 43], [44, 44], [45, 45], [46, 46], [47, 47], [48, 48], [49, 49], [50, 50], [51, 51], [52, 52], [53, 53], [54, 54], [55, 55], [56, 56], [57, 57], [58, 58], [59, 59], [60, 60], [61, 61], [62, 62], [63, 63], [64, 64], [65, 65], [66, 66], [67, 67], [68, 68], [69, 69], [70, 70], [71, 71], [72, 72]]
+                ),
                 [
                     (
                         [4],
@@ -278,7 +281,10 @@ class TestUtility(unittest.TestCase):
                 'this is awwsome white refrigerator , and it is awesome white refrigerator'
             ),
             (
-                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71],
+                (
+                    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71],
+                    [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6], [7, 7], [8, 8], [9, 9], [10, 10], [11, 11], [12, 12], [13, 13], [14, 14], [14, 14], [14, 14], [14, 14], [14, 14], [14, 14], [14, 14], [15, 15], [16, 16], [17, 17], [18, 18], [19, 19], [20, 20], [21, 21], [22, 22], [23, 23], [24, 24], [25, 25], [26, 26], [27, 27], [28, 28], [29, 29], [30, 30], [31, 31], [32, 32], [33, 33], [34, 34], [35, 35], [36, 36], [37, 37], [38, 38], [39, 39], [40, 40], [41, 41], [42, 42], [43, 43], [44, 44], [45, 45], [46, 46], [47, 47], [47, 47], [47, 47], [47, 47], [47, 47], [47, 47], [47, 47], [48, 48], [49, 49], [50, 50], [51, 51], [52, 52], [53, 53], [54, 54], [55, 55], [56, 56], [57, 57], [58, 58], [59, 59], [60, 60]]
+                ),
                 [
                     (
                         [5],
@@ -363,7 +369,3 @@ class TestUtility(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-    #x = TestUtility()
-    #x.setUp()
-    #x.compile_test_model()
-    #x.test_parse()

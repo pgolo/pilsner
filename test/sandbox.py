@@ -33,9 +33,9 @@ def save_it():
     #s = 'this is awwsome white refrigerator o refrigerator, is it tors not conflicting refrigerator hey'
     s = 'this is awwsome white refrigerator , and it is awesome white refrigerator'
     _messages.clear()
-    q = r.parse(m, s)
-    print(q)
-    #m.save('.test_model')
+    #q = r.parse(m, s)
+    #print(q)
+    m.save('.test_model')
 
 def load_it():
     rrr = pilsner.Recognizer(callback_status=callback_update_status, callback_progress=callback_update_mesage)
@@ -43,11 +43,11 @@ def load_it():
     s = 'this is awesome white refrigerators o refrigerator, is it not'
     s *= 10
     _messages.clear()
-    q = rrr.parse(m, s, attrs_where={'+': {'smth': {'D', 'A'}}}, attrs_out=['MSID', 'smth'])
-    print(q)
+    #q = rrr.parse(m, s, attrs_where={'+': {'smth': {'D', 'A'}}}, attrs_out=['MSID', 'smth'])
+    #print(q)
 
 save_it()
-#load_it()
+load_it()
 
 #segments = [tuple([1, 2]), tuple([3, 8]), tuple([1, 6]), tuple([2, 3])]
 #r = Recognizer()
