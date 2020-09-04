@@ -30,7 +30,8 @@ def save_it():
     _messages.clear()
     r.compile_model(m, 'test/assets/sample_dictionary.txt', specs, ' ', '\t', '\n', item_limit=3, include_keywords=True)
     print(m['~keywords'])
-    s = 'this is awwsome white refrigerator o refrigerator, is it tors not conflicting refrigerator hey'
+    #s = 'this is awwsome white refrigerator o refrigerator, is it tors not conflicting refrigerator hey'
+    s = 'this is awwsome white refrigerator , and it is awesome white refrigerator'
     _messages.clear()
     q = r.parse(m, s)
     print(q)
