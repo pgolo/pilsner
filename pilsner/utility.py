@@ -30,6 +30,7 @@ class Recognizer():
         specs = {'fields': {}, 'id': None, 'tokenizer': None, 'value': None}
         # {'name': 'DType', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': True, 'value_flag': False},
         # specs = {'DType': (0, None, False, True, False), 'MSID': (1, None, True, False, False), 'value': (2, None, False, False, True)}
+        # specs = {'attr_name': (column_index, delimiter, normalizer_flag, value_flag)}
         for i in range(0, len(fields)):
             field = fields[i]
             if not field['include']:
@@ -44,7 +45,7 @@ class Recognizer():
         logging.debug('Done compiling specs')
         return specs
 
-    def make_recognizer(self, model, filename, specs, word_separator, item_limit, compressed, column_separator, cell_wall, tokenizer_option):
+    def make_recognizer(self, model, filename, specs, word_separator, item_limit, compressed, column_separator, column_enclosure, tokenizer_option):
         # TODO: review for refactoring
         self.logger('Making recognizer using %s' % (filename))
         self.push_message('Making recognizer using %s' % (filename), self.callback_status)
@@ -76,14 +77,14 @@ class Recognizer():
                     trie = model.next_trie(specs, compressed, tokenizer_option, word_separator)
                     self.logger('Lines read: %d' % (line_count))
                     line_count = 0
-                columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_number, line, column_separator, cell_wall)
+                columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_number, line, column_separator, column_enclosure)
                 synonym, normalizer_name = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)
                 subtrie = trie[model.CONTENT_KEY][normalizer_name]
                 for character in synonym:
                     if character not in subtrie:
                         subtrie[character] = {}
                     subtrie = subtrie[character]
-                model.attribute_wrapper(line_number, normalizer_name, internal_id, subtrie, trie, specs, columns)
+                model.store_attributes(line_number, internal_id, subtrie, specs, columns)
                 line_count += 1
                 line_number += 1
         if line_count > 0 and len(trie) > 3:
@@ -95,7 +96,7 @@ class Recognizer():
         self.logger('Recognizer completed.')
         return ret, line_numbers
 
-    def make_keywords(self, model, filename, specs, line_numbers, word_separator, disambiguate_all, column_separator, cell_wall, tokenizer_option):
+    def make_keywords(self, model, filename, specs, line_numbers, word_separator, disambiguate_all, column_separator, column_enclosure, tokenizer_option):
         self.logger('Making keywords using %s... ' % (filename))
         self.push_message('Making keywords from {0}'.format(filename), self.callback_status)
         total_bytes = os.path.getsize(filename) + 1
@@ -114,7 +115,7 @@ class Recognizer():
                 if this_progress_position != last_progress_position:
                     last_progress_position = this_progress_position
                     self.push_message(int(100 * chars_read / total_bytes), self.callback_progress)
-                columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_count, line, column_separator, cell_wall)
+                columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_count, line, column_separator, column_enclosure)
                 internal_id_map[line_count] = internal_id
                 synonym, _ = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)
                 if synonym not in synonyms:
@@ -131,7 +132,7 @@ class Recognizer():
         with open(filename, mode='r', encoding='utf8') as f:
             line_count = 0
             for line in f:
-                columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_count, line, column_separator, cell_wall)
+                columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_count, line, column_separator, column_enclosure)
                 if internal_id in overlapping_ids:
                     synonym, _ = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)
                     tokens = synonym.split(word_separator)
@@ -142,42 +143,14 @@ class Recognizer():
         self.logger('Done compiling keywords.')
         return keywords
 
-    def compile_model(self, model, filename, specs, word_separator, column_separator, cell_wall, compressed=True, item_limit=0, tokenizer_option=0, include_keywords=False, disambiguate_all=False):
-        tries, line_numbers = self.make_recognizer(model, filename, specs, word_separator, item_limit, compressed, column_separator, cell_wall, tokenizer_option)
+    def compile_model(self, model, filename, specs, word_separator, column_separator, column_enclosure, compressed=True, item_limit=0, tokenizer_option=0, include_keywords=False, disambiguate_all=False):
+        tries, line_numbers = self.make_recognizer(model, filename, specs, word_separator, item_limit, compressed, column_separator, column_enclosure, tokenizer_option)
         keywords = {model.CONTENT_KEY: {}, model.INTERNAL_ID_KEY: {}}
         if include_keywords:
-            keywords = self.make_keywords(model, filename, specs, line_numbers, word_separator, disambiguate_all, column_separator, cell_wall, tokenizer_option)
+            keywords = self.make_keywords(model, filename, specs, line_numbers, word_separator, disambiguate_all, column_separator, column_enclosure, tokenizer_option)
         model[model.DICTIONARY_KEY] = tries
         model[model.KEYWORDS_KEY] = keywords
         return True
-
-    def verify_keywords(self, model, recognized, src, word_separator):
-        id_list = [set([model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] for x in rec[0] if x in model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY]]) for rec in recognized]
-        for k in range(len(id_list)):
-            ids = id_list[k]
-            if len(ids) < 2:
-                continue
-            si = 0
-            ei = len(src)
-            if k > 0:
-                si = recognized[k-1][4]
-            if k < len(id_list) - 1:
-                ei = recognized[k+1][3]
-            tokens = src[si:ei]
-            s_tokens = set(tokens.split(word_separator))
-            tmp = {i: model[model.KEYWORDS_KEY][model.CONTENT_KEY][i] if i in model[model.KEYWORDS_KEY][model.CONTENT_KEY] else set() for i in ids}
-            kwd = {i: tmp[i] - tmp[j] for i in tmp for j in tmp if j != i}
-            winner_score = 0
-            winner_id = set()
-            kwd_score = {}
-            for i in kwd:
-                kwd_score[i] = len(kwd[i].intersection(s_tokens))
-                if kwd_score[i] > winner_score:
-                    winner_score = kwd_score[i]
-                    winner_id.clear()
-                if kwd_score[i] == winner_score:
-                    winner_id.add(i)
-            recognized[k] = tuple([[x for x in recognized[k][0] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id]] + [{x: recognized[k][1][x] for x in recognized[k][1] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id}] + list(recognized[k])[2:])
 
     def unpack_trie(self, model, packed_trie, compressed):
         """TODO: add docstring here
@@ -198,13 +171,7 @@ class Recognizer():
         unpacked_trie_pointer[radix[-1:]] = packed_trie[radix]
         return unpacked_trie
 
-    def check_attrs(self, model, trie_leaf, cur, specs, include_query, exclude_query, process_exclude, attrs_out_query):
-        trie_leaf[model.ATTRS_KEY] = self.attribute_unpacker(cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
-        if len(trie_leaf[model.ATTRS_KEY]) == 0:
-            return {}
-        return trie_leaf
-
-    def attribute_unpacker(self, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
+    def unpack_attributes(self, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
         attributes = {}
         include = set()
         exclude = set()
@@ -229,6 +196,12 @@ class Recognizer():
                 attributes[n][attr_name].append(attr_value)
         return attributes
 
+    def check_attrs(self, model, trie_leaf, cur, include_query, exclude_query, process_exclude, attrs_out_query):
+        trie_leaf[model.ATTRS_KEY] = self.unpack_attributes(cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
+        if len(trie_leaf[model.ATTRS_KEY]) == 0:
+            return {}
+        return trie_leaf
+
     def spot_entities(self, model, source_string, normalizer_name, include_query='', exclude_query='', process_exclude=False, attrs_out_query='', progress_from=0, progress_to=100):
         # TODO: review for refactoring
         self.logger('Analyzing "%s"... ' % (source_string))
@@ -251,7 +224,6 @@ class Recognizer():
             temporary_index = -1
             total_length = len(source_string)
             increment_chars = int(total_length / progress_share) if total_length > progress_share else total_length - 1
-            dictionary_specs = trie[model.SPECS_KEY]['fields'].keys()
             while current_index < total_length:
                 this_progress_position = int(current_index / increment_chars / total_tries)
                 if this_progress_position != last_progress_position:
@@ -269,7 +241,7 @@ class Recognizer():
                     end_index = current_index
                     character = source_string[current_index]
                     if character == word_separator and model.ENTITY_KEY in subtrie:
-                        found_object = self.check_attrs(model, subtrie, model.cursor, dictionary_specs, include_query, exclude_query, process_exclude, attrs_out_query)
+                        found_object = self.check_attrs(model, subtrie, model.cursor, include_query, exclude_query, process_exclude, attrs_out_query)
                         if found_object:
                             identified = found_object[model.ENTITY_KEY], found_object[model.ATTRS_KEY]
                             shorter_alternative = (identified[0], identified[1], string_so_far, start_index + 1, end_index)
@@ -282,7 +254,7 @@ class Recognizer():
                         #if everything_or_nothing and current_index == total_length: return []
                         if character == word_separator or current_index == total_length: # - 1:
                             if model.ENTITY_KEY in subtrie:
-                                found_object = self.check_attrs(model, subtrie, model.cursor, dictionary_specs, include_query, exclude_query, process_exclude, attrs_out_query)
+                                found_object = self.check_attrs(model, subtrie, model.cursor, include_query, exclude_query, process_exclude, attrs_out_query)
                                 if found_object:
                                     identified = found_object[model.ENTITY_KEY], found_object[model.ATTRS_KEY]
                                     ret.append((identified[0], identified[1], string_so_far, start_index + 1, end_index))
@@ -311,7 +283,7 @@ class Recognizer():
                         subtrie = trie[model.CONTENT_KEY][normalizer_name]
                 current_index += 1
             if model.ENTITY_KEY in subtrie:
-                found_object = self.check_attrs(model, subtrie, model.cursor, dictionary_specs, include_query, exclude_query, process_exclude, attrs_out_query)
+                found_object = self.check_attrs(model, subtrie, model.cursor, include_query, exclude_query, process_exclude, attrs_out_query)
                 if found_object:
                     identified = found_object[model.ENTITY_KEY], found_object[model.ATTRS_KEY]
                     ret.append((identified[0], identified[1], string_so_far, start_index + 1, current_index - 1))
@@ -319,44 +291,160 @@ class Recognizer():
                     ret.append(shorter_alternative)
             elif shorter_alternative:
                 ret.append(shorter_alternative)
-            if model[model.KEYWORDS_KEY] is not None:
-                self.verify_keywords(model, ret, source_string, word_separator)
             rets += ret
             current_trie_index += 1
         self.push_message(progress_to, self.callback_progress)
         self.logger('Done.')
         return rets
 
-    def flatten(self, layers):
-        ret = {}
-        all_entries = []
-        for layer in layers:
-            _map = layer[0]
-            _recognized = layer[1]
-            for span in _recognized:
-                _ids, _content, _left, _right = span[0], span[1], _map[span[3]], _map[span[4]]
-                for _id in _ids:
-                    _attrs = _content[_id]
-                    for _attr_name in _attrs:
-                        for _attr_value in _attrs[_attr_name]:
-                            all_entries.append(tuple([_left, _right, _attr_name, _attr_value]))
-        all_entries = sorted(sorted(all_entries, key=lambda x: -x[1]), key=lambda x: x[0])
-        filtered_entries = [all_entries[0]]
-        for i in range(1, len(all_entries)):
-            q = all_entries[i]
-            if (filtered_entries[-1][0] <= q[0] < filtered_entries[-1][1] and filtered_entries[-1][0] < q[1] < filtered_entries[-1][1]) or (filtered_entries[-1][0] < q[0] < filtered_entries[-1][1] and filtered_entries[-1][0] < q[1] <= filtered_entries[-1][1]):
+    def disambiguate(self, model, recognized, srcs, word_separator):
+        _recognized = sorted(recognized, key=lambda x: x[2])
+        id_list = [[model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] for x in rec[0] if x in model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY]] for rec in _recognized]
+        for k in range(len(id_list)):
+            ids = id_list[k]
+            if len(ids) < 2:
                 continue
-            filtered_entries.append(q)
-        for entry in filtered_entries:
-            _location, _attr_name, _attr_value = tuple([int(entry[0]), int(entry[1])]), str(entry[2]), str(entry[3])
-            if _location not in ret:
-                ret[_location] = {}
-            if _attr_name not in ret[_location]:
-                ret[_location][_attr_name] = set()
-            ret[_location][_attr_name].add(_attr_value)
+            si = {}
+            src = {}
+            ei = {}
+            tokens = {}
+            s_tokens = {}
+            for j in range(len(ids)):
+                #si[j] = 0
+                #si.append(0)
+                si[ids[j]] = 0
+                #src[j] = srcs[recognized[k][4][j]]
+                #src.append(srcs[_recognized[k][4][j]])
+                src[ids[j]] = srcs[_recognized[k][4][j]]
+                #ei[j] = len(src[j])
+                #ei.append(len(src[j]))
+                ei[ids[j]] = len(src[ids[j]])
+
+                if k > 0:
+                    # !!! TODO: rather than this, take map of normalizer [k-1] and remap location on map of normalizer[k] as a boundary
+                    #si[j] = _recognized[k-1][5][0][1]
+                    
+                    #si[ids[j]] = _recognized[k][6][ _recognized[k][4][j]  ][_recognized[k-1][5][0][1]]
+                    
+                    # See above, think
+                    #if _recognized[k-1][5][0][1] > si[ids[j]]:
+                    if _recognized[k][7][ids[j]][_recognized[k-1][3]][1] > si[ids[j]]:
+                        #si[ids[j]] = _recognized[k-1][5][0][1]
+                        si[ids[j]] = _recognized[k][7][ids[j]][_recognized[k-1][3]][1]
+
+                    # m = k - 1
+                    # while m > 0 and _recognized[k][4][j] not in _recognized[m][4]:
+                    #     m -= 1
+                    # if _recognized[k][4][j] in _recognized[k-1][4]:
+                    #     si[j] = _recognized[m][5][0][1]
+                if k < len(id_list) - 1:
+                    #ei[j] = _recognized[k+1][5][0][0]
+                    
+                    #ei[ids[j]] = _recognized[k][6][ _recognized[k][4][j]  ][_recognized[k+1][5][0][0]]
+
+                    #if _recognized[k+1][5][0][0] < ei[ids[j]]:
+                    if _recognized[k][7][ids[j]][_recognized[k+1][2]][0] < ei[ids[j]]:
+                        #ei[ids[j]] = _recognized[k+1][5][0][0]
+                        ei[ids[j]] = _recognized[k][7][ids[j]][_recognized[k+1][2]][0]
+                    # m = k + 1
+                    # while m < len(id_list) - 1 and _recognized[k][4][j] not in _recognized[m][4]:
+                    #     m += 1
+                    # if _recognized[k][4][j] in _recognized[m][4]:
+                    #     ei[j] = _recognized[m][5][0][0]
+                #tokens[j] = src[j][si[j]:ei[j]]
+                #tokens.append(src[j][si[j]:ei[j]])
+                
+                #tokens[ids[j]] = src[j][si[j]:ei[j]]
+                tokens[ids[j]] = src[ids[j]][si[ids[j]]:ei[ids[j]]]
+
+                #s_tokens[j] = set(tokens[j].split(word_separator))
+                #s_tokens.append(set(tokens[j].split(word_separator)))
+                s_tokens[ids[j]] = set(tokens[ids[j]].split(word_separator))
+            # tmp = {i: model[model.KEYWORDS_KEY][model.CONTENT_KEY][i] if i in model[model.KEYWORDS_KEY][model.CONTENT_KEY] else set() for i in ids}
+            # kwd = {i: tmp[i] - tmp[j] for i in tmp for j in tmp if j != i}
+            tmp = {i: model[model.KEYWORDS_KEY][model.CONTENT_KEY][i] if i in model[model.KEYWORDS_KEY][model.CONTENT_KEY] else set() for i in ids}
+            kwd = {i: tmp[i] - tmp[j] for i in tmp for j in tmp if j != i}
+            winner_score = 0
+            winner_id = set()
+            kwd_score = {}
+            for i in kwd:
+                kwd_score[i] = len(kwd[i].intersection(s_tokens[i]))
+                if kwd_score[i] > winner_score:
+                    winner_score = kwd_score[i]
+                    winner_id.clear()
+                if kwd_score[i] == winner_score:
+                    winner_id.add(i)
+            _recognized[k] = tuple([[x for x in _recognized[k][0] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id]] + [{x: _recognized[k][1][x] for x in _recognized[k][1] if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] in winner_id}] + list(_recognized[k])[2:])
+        return _recognized
+
+    def flatten_layers(self, model, layers):
+        spans = {}
+        srcs = []
+        for i in range(0, len(layers)):
+            layer = layers[i]
+            _map = layer[0][0]
+            _r_map = layer[0][1]
+            _recognized = layer[1]
+            _src = layer[2]
+            srcs.append(_src)
+            for span in _recognized:
+                location = tuple([_map[span[3]], _map[span[4]]])
+                if location not in spans:
+                    spans[location] = []
+                spans[location].append(tuple([span[0], span[1], [i] * len(span[0]), span[3], span[4], _map, _r_map]))
+        new_layers = []
+        for location in spans:
+            new_left = location[0]
+            new_right = location[1]
+            new_ids = []
+            new_attrs = {}
+            new_srcids = []
+            new_locations = []
+            new_map = {}
+            new_r_map = {}
+            for item in spans[location]:
+                new_ids += item[0]
+                new_attrs = {**new_attrs, **item[1]}
+                if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY]:
+                    new_srcids += item[2]
+                    new_locations.append(tuple([item[3], item[4]]))
+                    new_map.update({model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][k]: item[5] for k in item[0]})
+                    new_r_map.update({model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][k]: item[6] for k in item[0]})
+            new_layers.append(tuple([new_ids, new_attrs, new_left, new_right, new_srcids, new_locations, new_map, new_r_map]))
+        if model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY]:
+            new_layers = self.disambiguate(model, new_layers, srcs, ' ')
+            pass
+        ret = [x[0:4] for x in new_layers]
         return ret
 
-    def reduce(self, segments):
+    def flatten_spans(self, spans):
+        ret = {}
+        all_entries = []
+        for span in spans:
+            _ids, _content, _left, _right = span[0], span[1], span[2], span[3]
+            for _id in _ids:
+                _attrs = _content[_id]
+                for _attr_name in _attrs:
+                    for _attr_value in _attrs[_attr_name]:
+                        all_entries.append(tuple([_left, _right, _attr_name, _attr_value]))
+        if len(all_entries) > 0:
+            all_entries = sorted(sorted(all_entries, key=lambda x: -x[1]), key=lambda x: x[0])
+            filtered_entries = [all_entries[0]]
+            for i in range(1, len(all_entries)):
+                q = all_entries[i]
+                if (filtered_entries[-1][0] <= q[0] < filtered_entries[-1][1] and filtered_entries[-1][0] < q[1] < filtered_entries[-1][1]) or (filtered_entries[-1][0] < q[0] < filtered_entries[-1][1] and filtered_entries[-1][0] < q[1] <= filtered_entries[-1][1]):
+                    continue
+                filtered_entries.append(q)
+            for entry in filtered_entries:
+                _location, _attr_name, _attr_value = tuple([int(entry[0]), int(entry[1])]), str(entry[2]), str(entry[3])
+                if _location not in ret:
+                    ret[_location] = {}
+                if _attr_name not in ret[_location]:
+                    ret[_location][_attr_name] = set()
+                ret[_location][_attr_name].add(_attr_value)
+        return ret
+
+    def reduce_spans(self, segments):
         def intersects(segment1, segment2):
             return segment2[0] >= segment1[0] and segment2[0] <= segment1[1]
         def length(segment):
@@ -415,13 +503,15 @@ class Recognizer():
         for normalizer_name in model[model.NORMALIZER_KEY]:
             normalized_string = model[model.NORMALIZER_KEY][normalizer_name].normalize(source_string, model[model.WORD_SEPARATOR_KEY], model[model.TOKENIZER_OPTION_KEY])
             character_map = model[model.NORMALIZER_KEY][normalizer_name].result['map']
+            r_character_map = model[model.NORMALIZER_KEY][normalizer_name].result['r_map']
             progress_from = current_normalizer_index * spot_progress_share
             progress_to = (current_normalizer_index + 1) * spot_progress_share
             parsed = self.spot_entities(model, normalized_string, normalizer_name, include_query, exclude_query, process_exclude, attrs_out_query, progress_from=progress_from, progress_to=progress_to)
-            rets.append((character_map, parsed))
+            rets.append(((character_map, r_character_map), parsed, normalized_string))
             current_normalizer_index += 1
-        flattened = self.flatten(rets)
-        locations = self.reduce(flattened.keys())
-        ret = {location: flattened[location] for location in locations}
+        layers = self.flatten_layers(model, rets)
+        spans = self.flatten_spans(layers)
+        locations = self.reduce_spans(spans.keys())
+        ret = {location: spans[location] for location in locations}
         self.logger('Done parsing text.')
         return ret

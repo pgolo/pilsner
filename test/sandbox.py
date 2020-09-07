@@ -24,24 +24,29 @@ def save_it():
         {'name': 'DType', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': True, 'value_flag': False},
         {'name': 'MSID', 'include': True, 'delimiter': None, 'id_flag': True, 'normalizer_flag': False, 'value_flag': False},
         {'name': 'Value', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': True},
-        {'name': 'smth', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False},
+        {'name': 'smth', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
     ]
     specs = r.compile_dict_specs(fields)
-    r.compile_model(m, 'test/assets/sample_dictionary.txt', specs, ' ', '\t', '\n', item_limit=2, include_keywords=True)
-    s = 'this is afinic cell carcinoma o carcinoma, damn it'
-    q = r.parse(m, s)
-    print(q)
+    _messages.clear()
+    r.compile_model(m, 'test/assets/sample_dictionary.txt', specs, ' ', '\t', '\n', item_limit=3, include_keywords=True)
+    print(m['~keywords'])
+    #s = 'this is awwsome white refrigerator o refrigerator, is it tors not conflicting refrigerator hey'
+    s = 'this is awwsome white refrigerator , and it is awesome white refrigerator'
+    _messages.clear()
+    #q = r.parse(m, s)
+    #print(q)
     m.save('.test_model')
 
 def load_it():
     rrr = pilsner.Recognizer(callback_status=callback_update_status, callback_progress=callback_update_mesage)
     m = pilsner.Model('.test_model')
-    s = 'this is acinic cell carcinomas o carcinoma, damn it'
+    s = 'this is awesome white refrigerators o refrigerator, is it not'
     s *= 10
-    q = rrr.parse(m, s, attrs_where={'+': {'smth': {'D', 'A'}}}, attrs_out=['MSID', 'smth'])
-    print(q)
+    _messages.clear()
+    #q = rrr.parse(m, s, attrs_where={'+': {'smth': {'D', 'A'}}}, attrs_out=['MSID', 'smth'])
+    #print(q)
 
-#save_it()
+save_it()
 load_it()
 
 #segments = [tuple([1, 2]), tuple([3, 8]), tuple([1, 6]), tuple([2, 3])]
