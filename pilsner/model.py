@@ -100,7 +100,7 @@ class Model(dict):
             self[self.TOKENIZER_OPTION_KEY] = normalizers[self.TOKENIZER_OPTION_KEY]
         self[self.DEFAULT_NORMALIZER_KEY] = normalizers[self.DEFAULT_NORMALIZER_KEY]
         logging.debug('Loaded "%s"' % ('%s.normalizers' % (filename)))
-        for _filename in os.listdir(os.path.dirname(filename)) if os.path.dirname(filename) != '' else os.listdir():
+        for _filename in sorted(os.listdir(os.path.dirname(filename))) if os.path.dirname(filename) != '' else sorted(os.listdir()):
             if _filename.startswith(os.path.basename(filename) + '.') and _filename.endswith('.dictionary'):
                 with open('%s/%s' % (os.path.dirname(filename), _filename) if os.path.dirname(filename) != '' else _filename, mode='rb') as f:
                     dictionary = pickle.load(f)
@@ -119,6 +119,7 @@ class Model(dict):
         logging.debug('Adding normalizer "%s" from "%s"' % (normalizer_name, filename))
         normalizer = self.sic_builder.build_normalizer(filename)
         self[self.NORMALIZER_KEY][normalizer_name] = normalizer
+        self.normalizer_map[normalizer_name] = normalizer_name
         if len(self[self.NORMALIZER_KEY]) == 1 or default:
             self[self.DEFAULT_NORMALIZER_KEY] = normalizer_name
         logging.debug('Added normalizer "%s" from "%s"' % (normalizer_name, filename))
@@ -169,7 +170,7 @@ class Model(dict):
             ret[self.CONTENT_KEY][normalizer_name] = packed
         return ret
 
-    def attribute_wrapper(self, line_number, normalizer_name, internal_id, subtrie, trie, specs, columns):
+    def store_attributes(self, line_number, internal_id, subtrie, specs, columns):
         if self.ENTITY_KEY not in subtrie:
             subtrie[self.ENTITY_KEY] = []
         subtrie[self.ENTITY_KEY].append(line_number)
@@ -179,10 +180,10 @@ class Model(dict):
             if not specs['fields'][k][1]:
                 self.cursor.execute('insert into attrs (n, iid, attr_name, attr_value) select ?, ?, ?, ?;', (line_number, internal_id, k, columns[specs['fields'][k][0]]))
             else:
-                _ = [ self.cursor.execute('insert into attrs (n, iid, attr_name, attr_value) select ?, ?, ?, ?;', (line_number, internal_id, k, s)) for s in set(columns[specs['fields'][k][0]].split( specs['fields'][k][1]) ) ]
+                _ = [self.cursor.execute('insert into attrs (n, iid, attr_name, attr_value) select ?, ?, ?, ?;', (line_number, internal_id, k, s)) for s in set(columns[specs['fields'][k][0]].split(specs['fields'][k][1]))]
 
-    def get_dictionary_line(self, specs, entity_ids, line_numbers, line_number, line, column_separator, cell_wall):
-        columns = [x.strip(cell_wall) for x in line.split(column_separator)]
+    def get_dictionary_line(self, specs, entity_ids, line_numbers, line_number, line, column_separator, column_enclosure):
+        columns = [x.strip(column_enclosure) for x in line.strip('\n').split(column_separator)]
         if line_number in line_numbers:
             internal_id = line_numbers[line_number]
         else:
@@ -190,6 +191,7 @@ class Model(dict):
             if entity_id not in entity_ids:
                 entity_ids[entity_id] = len(entity_ids)
             internal_id = entity_ids[entity_id]
+            line_numbers[line_number] = internal_id
         return columns, internal_id
 
     def get_dictionary_synonym(self, columns, specs, word_separator, tokenizer_option=0):
@@ -200,11 +202,15 @@ class Model(dict):
                     normalizer_name = self[self.DEFAULT_NORMALIZER_KEY]
                 elif columns[specs['tokenizer'][0]] in self.normalizer_map and self.normalizer_map[columns[specs['tokenizer'][0]]] in self[self.NORMALIZER_KEY]:
                     normalizer_name = self.normalizer_map[columns[specs['tokenizer'][0]]]
+            else:
+                normalizer_name = self[self.DEFAULT_NORMALIZER_KEY]
         if normalizer_name is not None:
             synonym = self[self.NORMALIZER_KEY][normalizer_name].normalize(synonym, word_separator, tokenizer_option)
         return synonym, normalizer_name
 
     def next_trie(self, specs, compressed, tokenizer_option, word_separator):
+        if len(self[self.NORMALIZER_KEY]) == 0:
+            self.add_normalizer('bypass', '%s/normalizer.bypass.xml' % (os.path.abspath(os.path.dirname(__file__))))
         new_trie = {
             self.CONTENT_KEY: {normalizer_name: {} for normalizer_name in self[self.NORMALIZER_KEY]},
             self.SPECS_KEY: specs,
