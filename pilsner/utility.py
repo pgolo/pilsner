@@ -138,7 +138,7 @@ class Recognizer():
                     tokens = synonym.split(word_separator)
                     overlapping_ids[internal_id] = overlapping_ids[internal_id].union(set(tokens))
                 line_count += 1
-            # TODO: only leave tokens unique for a given internal_id
+            # TODO: only leave tokens unique for a given internal_id (?)
         keywords = {model.CONTENT_KEY: overlapping_ids, model.INTERNAL_ID_KEY: internal_id_map}
         self.logger('Done compiling keywords.')
         return keywords
@@ -310,58 +310,19 @@ class Recognizer():
             tokens = {}
             s_tokens = {}
             for j in range(len(ids)):
-                #si[j] = 0
-                #si.append(0)
                 si[ids[j]] = 0
-                #src[j] = srcs[recognized[k][4][j]]
-                #src.append(srcs[_recognized[k][4][j]])
                 src[ids[j]] = srcs[_recognized[k][4][j]]
-                #ei[j] = len(src[j])
-                #ei.append(len(src[j]))
                 ei[ids[j]] = len(src[ids[j]])
-
                 if k > 0:
-                    # !!! TODO: rather than this, take map of normalizer [k-1] and remap location on map of normalizer[k] as a boundary
-                    #si[j] = _recognized[k-1][5][0][1]
-                    
-                    #si[ids[j]] = _recognized[k][6][ _recognized[k][4][j]  ][_recognized[k-1][5][0][1]]
-                    
-                    # See above, think
-                    #if _recognized[k-1][5][0][1] > si[ids[j]]:
+                    # take map from normalizer [k-1] and remap location on map of normalizer[k] as a boundary
                     if _recognized[k][7][ids[j]][_recognized[k-1][3]][1] > si[ids[j]]:
-                        #si[ids[j]] = _recognized[k-1][5][0][1]
                         si[ids[j]] = _recognized[k][7][ids[j]][_recognized[k-1][3]][1]
-
-                    # m = k - 1
-                    # while m > 0 and _recognized[k][4][j] not in _recognized[m][4]:
-                    #     m -= 1
-                    # if _recognized[k][4][j] in _recognized[k-1][4]:
-                    #     si[j] = _recognized[m][5][0][1]
                 if k < len(id_list) - 1:
-                    #ei[j] = _recognized[k+1][5][0][0]
-                    
-                    #ei[ids[j]] = _recognized[k][6][ _recognized[k][4][j]  ][_recognized[k+1][5][0][0]]
-
-                    #if _recognized[k+1][5][0][0] < ei[ids[j]]:
+                    # take map from normalizer [k+1] and remap location on map of normalizer[k] as a boundary
                     if _recognized[k][7][ids[j]][_recognized[k+1][2]][0] < ei[ids[j]]:
-                        #ei[ids[j]] = _recognized[k+1][5][0][0]
                         ei[ids[j]] = _recognized[k][7][ids[j]][_recognized[k+1][2]][0]
-                    # m = k + 1
-                    # while m < len(id_list) - 1 and _recognized[k][4][j] not in _recognized[m][4]:
-                    #     m += 1
-                    # if _recognized[k][4][j] in _recognized[m][4]:
-                    #     ei[j] = _recognized[m][5][0][0]
-                #tokens[j] = src[j][si[j]:ei[j]]
-                #tokens.append(src[j][si[j]:ei[j]])
-                
-                #tokens[ids[j]] = src[j][si[j]:ei[j]]
                 tokens[ids[j]] = src[ids[j]][si[ids[j]]:ei[ids[j]]]
-
-                #s_tokens[j] = set(tokens[j].split(word_separator))
-                #s_tokens.append(set(tokens[j].split(word_separator)))
                 s_tokens[ids[j]] = set(tokens[ids[j]].split(word_separator))
-            # tmp = {i: model[model.KEYWORDS_KEY][model.CONTENT_KEY][i] if i in model[model.KEYWORDS_KEY][model.CONTENT_KEY] else set() for i in ids}
-            # kwd = {i: tmp[i] - tmp[j] for i in tmp for j in tmp if j != i}
             tmp = {i: model[model.KEYWORDS_KEY][model.CONTENT_KEY][i] if i in model[model.KEYWORDS_KEY][model.CONTENT_KEY] else set() for i in ids}
             kwd = {i: tmp[i] - tmp[j] for i in tmp for j in tmp if j != i}
             winner_score = 0
