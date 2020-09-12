@@ -9,28 +9,29 @@ import shutil
 
 class Model(dict):
 
-    CONTENT_KEY = '~content'
-    SPECS_KEY = '~specs'
-    COMPRESSED_KEY = '~compressed'
-    TOKENIZER_OPTION_KEY = '~tokenizer_option'
-    WORD_SEPARATOR_KEY = '~word_separator'
-    ENTITY_KEY = '~i'
-    ATTRS_KEY = '~p'
-    INTERNAL_ID_KEY = '~iid'
-    DICTIONARY_KEY = '~dictionary'
-    KEYWORDS_KEY = '~keywords'
-    NORMALIZER_KEY = '~normalization'
-    DEFAULT_NORMALIZER_KEY = '~default_normalizer'
-    DATASOURCE_KEY = '~datasource'
-
-    DEFAULT_DATASOURCE_PATH = '.'
-    DEFAULT_DATASOURCE_FILENAME = ''
-    DEFAULT_DATASOURCE = ''
-
-    DEFAULT_WORD_SEPARATOR = ' '
-    DEFAULT_TOKENIZER_OPTION = 0
-
     def __init__(self, filename='', storage_location='', debug_mode=False, verbose_mode=False):
+
+        self.CONTENT_KEY = '~content'
+        self.SPECS_KEY = '~specs'
+        self.COMPRESSED_KEY = '~compressed'
+        self.TOKENIZER_OPTION_KEY = '~tokenizer_option'
+        self.WORD_SEPARATOR_KEY = '~word_separator'
+        self.ENTITY_KEY = '~i'
+        self.ATTRS_KEY = '~p'
+        self.INTERNAL_ID_KEY = '~iid'
+        self.DICTIONARY_KEY = '~dictionary'
+        self.KEYWORDS_KEY = '~keywords'
+        self.NORMALIZER_KEY = '~normalization'
+        self.DEFAULT_NORMALIZER_KEY = '~default_normalizer'
+        self.DATASOURCE_KEY = '~datasource'
+
+        self.DEFAULT_DATASOURCE_PATH = '.'
+        self.DEFAULT_DATASOURCE_FILENAME = ''
+        self.DEFAULT_DATASOURCE = ''
+
+        self.DEFAULT_WORD_SEPARATOR = ' '
+        self.DEFAULT_TOKENIZER_OPTION = 0
+
         self.DEFAULT_DATASOURCE_FILENAME = storage_location
         if self.DEFAULT_DATASOURCE_FILENAME.lower() != ':memory:':
             while self.DEFAULT_DATASOURCE_FILENAME == '' or os.path.exists(self.DEFAULT_DATASOURCE):
@@ -129,6 +130,7 @@ class Model(dict):
         logging.debug('Creating schema for permanent storage')
         cursor.execute('create table attrs (n integer, iid integer, attr_name text, attr_value text);')
         logging.debug('Created schema for permanent storage')
+        return True
 
     def pack_subtrie(self, trie, compressed, prefix):
         if not compressed:
@@ -138,7 +140,7 @@ class Model(dict):
         if prefix == self.ENTITY_KEY:
             return trie, prefix
         children = trie
-        child_count = len(children)
+        child_count = int(len(children))
         if child_count == 1:
             for key, child in children.items():
                 if key == self.ENTITY_KEY:
