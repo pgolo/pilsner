@@ -52,27 +52,17 @@ class Recognizer():
             subtrie = subtrie[character]
         model.store_attributes(label_id, entity_id, subtrie, specs, columns)
 
-    def remove_node(self, model, label, subtrie, prev=0):
-    # checks that we haven't hit the end of the word
+    def remove_node(self, model, label, subtrie, prev_length=0):
         if label:
-            first, rest = label[0], label[1:]
+            head, tail = label[0], label[1:]
             current_length = len(subtrie)
-            next_length, boo = self.remove_node(model, rest, subtrie=subtrie[first], prev=current_length)
-
-            # this statement avoids trimming excessively if the input is a prefix because
-            # if the word is a prefix, the first returned value will be greater than 1
-            if boo and next_length > 1:
-                boo = False
-
-            # this statement checks for the first occurrence of the current dict having more than one child
-            # or it checks that we've hit the bottom without trimming anything
-            elif boo and (current_length > 1 or not prev):
-                del subtrie[first]
-                boo = False
-
-            return current_length, boo
-
-        # when we do hit the end of the word, delete _end
+            next_length, bottom = self.remove_node(model, tail, subtrie=subtrie[head], prev_length=current_length)
+            if bottom and next_length > 1:
+                bottom = False
+            elif bottom and (current_length > 1 or not prev_length):
+                del subtrie[head]
+                bottom = False
+            return current_length, bottom
         else:
             del subtrie[model.ENTITY_KEY]
             return len(subtrie) + 1, True
