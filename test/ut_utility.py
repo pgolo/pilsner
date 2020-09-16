@@ -69,6 +69,29 @@ class TestUtility(unittest.TestCase):
         }
         assert specs == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(specs))
 
+    def test_insert_node(self):
+        fields = [
+            {'name': 'normalizer', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': True, 'value_flag': False},
+            {'name': 'entity_id', 'include': True, 'delimiter': None, 'id_flag': True, 'normalizer_flag': False, 'value_flag': False},
+            {'name': 'label', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': True},
+            {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
+        ]
+        specs = self.recognizer.compile_dict_specs(fields)
+        model = pilsner.Model()
+        model.create_recognizer_schema(model.cursor)
+        test_trie = {}
+        self.recognizer.insert_node(label='the synonym', label_id=1, entity_id='10', subtrie=test_trie, specs=specs, columns=['', '', '', ''], model=model)
+        self.recognizer.insert_node('the synthesis', 2, '20', test_trie, specs, ['', '', '', ''], model)
+        expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {'~i': [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {'~i': [2]}}}}}}}}}}}}}}
+        assert test_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(test_trie))
+
+    def test_remove_node(self):
+        test_trie = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {'~i': [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {'~i': [1]}}}}}}}}}}}}}}
+        model = pilsner.Model()
+        self.recognizer.remove_node(model=model, label='the synonym', subtrie=test_trie)
+        expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'t': {'h': {'e': {'s': {'i': {'s': {'~i': [1]}}}}}}}}}}}}}}
+        assert test_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(test_trie))
+
     def test_make_recognizer(self):
         fields = [
             {'name': 'normalizer', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': True, 'value_flag': False},
