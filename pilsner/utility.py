@@ -46,6 +46,7 @@ class Recognizer():
         return specs
 
     def insert_node(self, label, label_id, entity_id, subtrie, specs, columns, model):
+        # NB: only works with uncompressed trie
         for character in label:
             if character not in subtrie:
                 subtrie[character] = {}
@@ -53,6 +54,7 @@ class Recognizer():
         model.store_attributes(label_id, entity_id, subtrie, specs, columns)
 
     def remove_node(self, model, label, subtrie, prev_length=0):
+        # NB: only works with uncompressed trie
         if label:
             head, tail = label[0], label[1:]
             current_length = len(subtrie)
