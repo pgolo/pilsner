@@ -137,7 +137,7 @@ class Recognizer():
                     self.push_message(int(100 * chars_read / total_bytes), self.callback_progress)
                 columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_count, line, column_separator, column_enclosure)
                 internal_id_map[line_count] = internal_id
-                synonym, _ = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)
+                synonym = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)[0]
                 if synonym not in synonyms:
                     synonyms[synonym] = set()
                 synonyms[synonym].add(internal_id)
@@ -154,7 +154,7 @@ class Recognizer():
             for line in f:
                 columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_count, line, column_separator, column_enclosure)
                 if internal_id in overlapping_ids:
-                    synonym, _ = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)
+                    synonym = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)[0]
                     tokens = synonym.split(word_separator)
                     overlapping_ids[internal_id] = overlapping_ids[internal_id].union(set(tokens))
                 line_count += 1
@@ -193,18 +193,18 @@ class Recognizer():
 
     def unpack_attributes(self, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
         attributes = {}
-        include = set()
-        exclude = set()
+        include_attrs = set()
+        exclude_attrs = set()
         for n in leaf_ids:
             rows = cur.execute('select distinct n from attrs where n = %d %s;' % (n, include_query))
             for row in rows:
-                include.add(int(row[0]))
+                include_attrs.add(int(row[0]))
         if process_exclude:
             for n in leaf_ids:
                 rows = cur.execute('select distinct n from attrs where n = %d %s;' % (n, exclude_query))
                 for row in rows:
-                    exclude.add(int(row[0]))
-        ns = include - exclude
+                    exclude_attrs.add(int(row[0]))
+        ns = include_attrs - exclude_attrs
         for n in ns:
             rows = cur.execute('select attr_name, attr_value from attrs where n = %d%s;' % (n, attrs_out_query))
             if n not in attributes:
