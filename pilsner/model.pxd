@@ -29,7 +29,10 @@ cdef class Model(dict):
         normalizers=cython.dict,
         dictionary_number=cython.int
     )
-    cpdef bint save(self, str filename)
+    cpdef bint save(
+        self,
+        str filename
+    )
 
     @cython.locals(
         normalizers=cython.dict,
@@ -37,11 +40,22 @@ cdef class Model(dict):
         dictionary=cython.dict,
         keywords=cython.dict
     )
-    cpdef bint load(self, str filename)
+    cpdef bint load(
+        self,
+        str filename
+    )
 
-    cpdef bint add_normalizer(self, str normalizer_name, str filename, bint default=*)
+    cpdef bint add_normalizer(
+        self,
+        str normalizer_name,
+        str filename,
+        bint default=*
+    )
 
-    cpdef bint create_recognizer_schema(self, cursor)
+    cpdef bint create_recognizer_schema(
+        self,
+        cursor
+    )
 
     @cython.locals(
         children=cython.dict,
@@ -53,34 +67,71 @@ cdef class Model(dict):
         comp_key=cython.str,
         comp_children=cython.dict
     )
-    cpdef tuple pack_subtrie(self, dict trie, bint compressed, str prefix)
+    cpdef tuple pack_subtrie(
+        self,
+        dict trie,
+        bint compressed,
+        str prefix
+    )
 
     @cython.locals(
         ret=cython.dict,
         normalizer_name=cython.str,
         packed=cython.dict
     )
-    cpdef dict pack_trie(self, dict trie, bint compressed)
+    cpdef dict pack_trie(
+        self,
+        dict trie,
+        bint compressed
+    )
 
     @cython.locals(
         k=cython.str
     )
-    cpdef store_attributes(self, int line_number, int internal_id, dict subtrie, dict specs, list columns)
+    cpdef store_attributes(
+        self,
+        int line_number,
+        int internal_id,
+        dict subtrie,
+        dict specs,
+        list columns
+    )
 
     @cython.locals(
         columns=cython.list,
         internal_id=cython.int,
         entity_id=cython.str
     )
-    cpdef tuple get_dictionary_line(self, dict specs, dict entity_ids, dict line_numbers, int line_number, str line, str column_separator, str column_enclosure)
+    cpdef tuple get_dictionary_line(
+        self,
+        dict specs,
+        dict entity_ids,
+        dict line_numbers,
+        int line_number,
+        str line,
+        str column_separator,
+        str column_enclosure
+    )
 
     @cython.locals(
         synonym=cython.str,
         normalizer_name=cython.str
     )
-    cpdef tuple get_dictionary_synonym(self, list columns, dict specs, str word_separator, int tokenizer_option=*)
+    cpdef tuple get_dictionary_synonym(
+        self,
+        list columns,
+        dict specs,
+        str word_separator,
+        int tokenizer_option=*
+    )
 
     @cython.locals(
         new_trie=cython.dict
     )
-    cpdef dict next_trie(self, dict specs, bint compressed, int tokenizer_option, str word_separator)
+    cpdef dict next_trie(
+        self,
+        dict specs,
+        bint compressed,
+        int tokenizer_option,
+        str word_separator
+    )
