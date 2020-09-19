@@ -172,6 +172,10 @@ if __name__ == '__main__':
     unittest.main(exit=False)
     try:
         import bin as pilsner # pylint: disable=E0611,F0401
-        unittest.main()
+        #unittest.main()
+        ut = TestModel()
+        ut.setUp()
+        ut.test_del()
+        ut.tearDown()
     except ModuleNotFoundError:
         print('Could not import module from /bin, test skipped.')

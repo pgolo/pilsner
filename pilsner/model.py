@@ -135,20 +135,20 @@ class Model(dict):
     def pack_subtrie(self, trie, compressed, prefix):
         if not compressed:
             return trie, prefix
-        if type(trie) != dict:
-            return trie, prefix
+        # if type(trie) != dict:
+        #     return trie, prefix
         if prefix == self.ENTITY_KEY:
             return trie, prefix
         children = trie
         child_count = int(len(children))
         if child_count == 1:
-            for key, child in children.items():
+            for key in children:
                 if key == self.ENTITY_KEY:
                     if len(prefix) > 1:
                         return {prefix[1:]: trie}, prefix[0]
                     return trie, prefix
                 next_prefix = prefix + key
-                comp_child, comp_key = self.pack_subtrie(child, compressed, next_prefix)
+                comp_child, comp_key = self.pack_subtrie(children[key], compressed, next_prefix)
                 if prefix == '':
                     comp_children = {comp_key: comp_child}
                 else:
