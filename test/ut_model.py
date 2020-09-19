@@ -1,7 +1,6 @@
 import os
-import sys; sys.path.insert(0, '')
+import sys
 import unittest
-import pilsner # pylint: disable=E0611,F0401
 
 class TestModel(unittest.TestCase):
 
@@ -168,4 +167,11 @@ class TestModel(unittest.TestCase):
         assert got_trie == expected, 'Expected %s, got %s' % (str(expected), str(got_trie))
 
 if __name__ == '__main__':
-    unittest.main()
+    sys.path.insert(0, '')
+    import pilsner # pylint: disable=E0611,F0401
+    unittest.main(exit=False)
+    try:
+        import bin as pilsner # pylint: disable=E0611,F0401
+        unittest.main()
+    except ModuleNotFoundError:
+        print('Could not import module from /bin, test skipped.')

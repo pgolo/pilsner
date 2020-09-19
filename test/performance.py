@@ -237,6 +237,6 @@ def cleanup():
 
 if __name__ == '__main__':
     create_test_dataset()
-    perf_compile_model_save_model(['pilsner'])
-    perf_load_model_parse_test(['pilsner'])
+    perf_compile_model_save_model(['pilsner', 'bin'])
+    perf_load_model_parse_test(['pilsner', 'bin'])
     cleanup()

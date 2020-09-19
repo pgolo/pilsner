@@ -43,7 +43,7 @@ def load_it():
     s = 'this is awesome white refrigerators o refrigerator, is it not'
     s *= 10
     _messages.clear()
-    #q = rrr.parse(m, s, attrs_where={'+': {'smth': {'D', 'A'}}}, attrs_out=['MSID', 'smth'])
+    q = rrr.parse(m, s, attrs_where={'+': {'smth': {'D', 'A'}}}, attrs_out=['MSID', 'smth'])
     #print(q)
 
 save_it()
