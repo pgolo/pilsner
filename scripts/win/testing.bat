@@ -1,4 +1,5 @@
 @echo off
+call %~dp0\buildpyd.bat
 set RUNDIR=%cd%
 set ROOT=%~dp0..\..
 set ENV=.env.37
