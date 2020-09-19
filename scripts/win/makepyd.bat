@@ -3,7 +3,7 @@ set RUNDIR=%cd%
 set ROOT=%~dp0..\..
 set ENV=.env.37
 set SRC=%ROOT%\pilsner
-set DIST=%ROOT%\pyd
+set DIST=%ROOT%\bin
 set TEST=%ROOT%\test
 cd %ROOT%
 rmdir /S /Q %ROOT%\build
