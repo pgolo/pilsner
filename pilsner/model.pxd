@@ -61,7 +61,6 @@ cdef class Model(dict):
         children=cython.dict,
         child_count=cython.int,
         key=cython.str,
-        child=cython.dict,
         next_prefix=cython.str,
         comp_child=cython.dict,
         comp_key=cython.str,
