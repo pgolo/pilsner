@@ -8,6 +8,7 @@ class TestModel(unittest.TestCase):
         self.model = pilsner.Model()
 
     def tearDown(self):
+        self.model.destroy()
         del(self.model)
 
     def test_init(self):
@@ -16,10 +17,12 @@ class TestModel(unittest.TestCase):
         assert type(m) == pilsner.Model, 'Model is expected to have pilsner.Model type, but has %s instead' % (str(type(m)))
         storage = m.DEFAULT_DATASOURCE
         assert storage.lower() == ':memory:' or os.path.exists(storage), 'Model storage is not where it is supposed to be'
+        m.destroy()
 
     def test_del(self):
         m = pilsner.Model()
         storage = m.DEFAULT_DATASOURCE
+        m.destroy()
         del(m)
         assert 'm' not in locals(), 'Instance of Model class has not been destroyed'
         assert storage.lower() == ':memory:' or not os.path.exists(storage), 'Model storage is supposed to be removed once class has been destroyed'
@@ -44,6 +47,7 @@ class TestModel(unittest.TestCase):
         another_model = pilsner.Model()
         another_model.load('./.test_load')
         assert another_model[another_model.DICTIONARY_KEY] == expected, 'Loaded model %s != saved model %s' % (str(another_model[another_model.DICTIONARY_KEY]), str(expected))
+        another_model.destroy()
         del(another_model)
         os.remove('./.test_load.0.dictionary')
         os.remove('./.test_load.1.dictionary')
@@ -172,10 +176,6 @@ if __name__ == '__main__':
     unittest.main(exit=False)
     try:
         import bin as pilsner # pylint: disable=E0611,F0401
-        #unittest.main()
-        ut = TestModel()
-        ut.setUp()
-        ut.test_del()
-        ut.tearDown()
+        unittest.main()
     except ModuleNotFoundError:
         print('Could not import module from /bin, test skipped.')
