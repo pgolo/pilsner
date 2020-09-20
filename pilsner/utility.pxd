@@ -10,7 +10,7 @@ cdef class Recognizer():
 
     cpdef push_message(
         self,
-        str message,
+        message,
         callback_function
     )
 
@@ -31,7 +31,7 @@ cdef class Recognizer():
         self,
         str label,
         int label_id,
-        str entity_id,
+        int entity_id,
         dict subtrie,
         dict specs,
         list columns,
@@ -251,8 +251,8 @@ cdef class Recognizer():
         srcs=cython.list,
         i=cython.int,
         layer=cython.tuple,
-        _map=cython.dict,
-        _r_map=cython.dict,
+        _map=cython.list,
+        _r_map=cython.list,
         _recognized=cython.list,
         _src=cython.str,
         span=cython.tuple,

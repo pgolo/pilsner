@@ -492,7 +492,7 @@ class Recognizer():
             current_normalizer_index += 1
         layers = self.flatten_layers(model, rets)
         spans = self.flatten_spans(layers)
-        locations = self.reduce_spans(spans.keys())
+        locations = self.reduce_spans(set(spans.keys()))
         ret = {location: spans[location] for location in locations}
         self.logger('Done parsing text.')
         return ret

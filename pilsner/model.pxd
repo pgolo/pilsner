@@ -62,13 +62,12 @@ cdef class Model(dict):
         child_count=cython.int,
         key=cython.str,
         next_prefix=cython.str,
-        comp_child=cython.dict,
         comp_key=cython.str,
         comp_children=cython.dict
     )
     cpdef tuple pack_subtrie(
         self,
-        dict trie,
+        trie,
         bint compressed,
         str prefix
     )
