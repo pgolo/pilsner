@@ -45,6 +45,30 @@ class Recognizer():
         logging.debug('Done compiling specs')
         return specs
 
+    def insert_node(self, label, label_id, entity_id, subtrie, specs, columns, model):
+        # NB: only works with uncompressed trie
+        for character in label:
+            if character not in subtrie:
+                subtrie[character] = {}
+            subtrie = subtrie[character]
+        model.store_attributes(label_id, entity_id, subtrie, specs, columns)
+
+    def remove_node(self, model, label, subtrie, prev_length=0):
+        # NB: only works with uncompressed trie
+        if label:
+            head, tail = label[0], label[1:]
+            current_length = int(len(subtrie))
+            next_length, bottom = self.remove_node(model, tail, subtrie=subtrie[head], prev_length=current_length)
+            if bottom and next_length > 1:
+                bottom = False
+            elif bottom and (current_length > 1 or not prev_length):
+                del subtrie[head]
+                bottom = False
+            return current_length, bottom
+        else:
+            del subtrie[model.ENTITY_KEY]
+            return len(subtrie) + 1, True
+
     def make_recognizer(self, model, filename, specs, word_separator, item_limit, compressed, column_separator, column_enclosure, tokenizer_option):
         # TODO: review for refactoring
         self.logger('Making recognizer using %s' % (filename))
@@ -66,7 +90,7 @@ class Recognizer():
             chars_read = 0
             trie = model.next_trie(specs, compressed, tokenizer_option, word_separator)
             for line in f:
-                chars_read += len(line)
+                chars_read += int(len(line))
                 this_progress_position = int(chars_read / increment_bytes)
                 if this_progress_position != last_progress_position:
                     last_progress_position = this_progress_position
@@ -80,11 +104,7 @@ class Recognizer():
                 columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_number, line, column_separator, column_enclosure)
                 synonym, normalizer_name = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)
                 subtrie = trie[model.CONTENT_KEY][normalizer_name]
-                for character in synonym:
-                    if character not in subtrie:
-                        subtrie[character] = {}
-                    subtrie = subtrie[character]
-                model.store_attributes(line_number, internal_id, subtrie, specs, columns)
+                self.insert_node(synonym, line_number, internal_id, subtrie, specs, columns, model)
                 line_count += 1
                 line_number += 1
         if line_count > 0 and len(trie) > 3:
@@ -110,14 +130,14 @@ class Recognizer():
             line_count = 0
             chars_read = 0
             for line in f:
-                chars_read += len(line)
+                chars_read += int(len(line))
                 this_progress_position = int(chars_read / increment_bytes)
                 if this_progress_position != last_progress_position:
                     last_progress_position = this_progress_position
                     self.push_message(int(100 * chars_read / total_bytes), self.callback_progress)
                 columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_count, line, column_separator, column_enclosure)
                 internal_id_map[line_count] = internal_id
-                synonym, _ = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)
+                synonym = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)[0]
                 if synonym not in synonyms:
                     synonyms[synonym] = set()
                 synonyms[synonym].add(internal_id)
@@ -134,11 +154,11 @@ class Recognizer():
             for line in f:
                 columns, internal_id = model.get_dictionary_line(specs, entity_ids, line_numbers, line_count, line, column_separator, column_enclosure)
                 if internal_id in overlapping_ids:
-                    synonym, _ = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)
+                    synonym = model.get_dictionary_synonym(columns, specs, word_separator, tokenizer_option)[0]
                     tokens = synonym.split(word_separator)
                     overlapping_ids[internal_id] = overlapping_ids[internal_id].union(set(tokens))
                 line_count += 1
-            # TODO: only leave tokens unique for a given internal_id
+            # TODO: only leave tokens unique for a given internal_id (?)
         keywords = {model.CONTENT_KEY: overlapping_ids, model.INTERNAL_ID_KEY: internal_id_map}
         self.logger('Done compiling keywords.')
         return keywords
@@ -173,18 +193,18 @@ class Recognizer():
 
     def unpack_attributes(self, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
         attributes = {}
-        include = set()
-        exclude = set()
+        include_attrs = set()
+        exclude_attrs = set()
         for n in leaf_ids:
             rows = cur.execute('select distinct n from attrs where n = %d %s;' % (n, include_query))
             for row in rows:
-                include.add(int(row[0]))
+                include_attrs.add(int(row[0]))
         if process_exclude:
             for n in leaf_ids:
                 rows = cur.execute('select distinct n from attrs where n = %d %s;' % (n, exclude_query))
                 for row in rows:
-                    exclude.add(int(row[0]))
-        ns = include - exclude
+                    exclude_attrs.add(int(row[0]))
+        ns = include_attrs - exclude_attrs
         for n in ns:
             rows = cur.execute('select attr_name, attr_value from attrs where n = %d%s;' % (n, attrs_out_query))
             if n not in attributes:
@@ -198,7 +218,7 @@ class Recognizer():
 
     def check_attrs(self, model, trie_leaf, cur, include_query, exclude_query, process_exclude, attrs_out_query):
         trie_leaf[model.ATTRS_KEY] = self.unpack_attributes(cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
-        if len(trie_leaf[model.ATTRS_KEY]) == 0:
+        if int(len(trie_leaf[model.ATTRS_KEY])) == 0:
             return {}
         return trie_leaf
 
@@ -222,7 +242,7 @@ class Recognizer():
             shorter_alternative = None
             current_index = 0
             temporary_index = -1
-            total_length = len(source_string)
+            total_length = int(len(source_string))
             increment_chars = int(total_length / progress_share) if total_length > progress_share else total_length - 1
             while current_index < total_length:
                 this_progress_position = int(current_index / increment_chars / total_tries)
@@ -310,58 +330,19 @@ class Recognizer():
             tokens = {}
             s_tokens = {}
             for j in range(len(ids)):
-                #si[j] = 0
-                #si.append(0)
                 si[ids[j]] = 0
-                #src[j] = srcs[recognized[k][4][j]]
-                #src.append(srcs[_recognized[k][4][j]])
                 src[ids[j]] = srcs[_recognized[k][4][j]]
-                #ei[j] = len(src[j])
-                #ei.append(len(src[j]))
                 ei[ids[j]] = len(src[ids[j]])
-
                 if k > 0:
-                    # !!! TODO: rather than this, take map of normalizer [k-1] and remap location on map of normalizer[k] as a boundary
-                    #si[j] = _recognized[k-1][5][0][1]
-                    
-                    #si[ids[j]] = _recognized[k][6][ _recognized[k][4][j]  ][_recognized[k-1][5][0][1]]
-                    
-                    # See above, think
-                    #if _recognized[k-1][5][0][1] > si[ids[j]]:
+                    # take map from normalizer [k-1] and remap location on map of normalizer[k] as a boundary
                     if _recognized[k][7][ids[j]][_recognized[k-1][3]][1] > si[ids[j]]:
-                        #si[ids[j]] = _recognized[k-1][5][0][1]
                         si[ids[j]] = _recognized[k][7][ids[j]][_recognized[k-1][3]][1]
-
-                    # m = k - 1
-                    # while m > 0 and _recognized[k][4][j] not in _recognized[m][4]:
-                    #     m -= 1
-                    # if _recognized[k][4][j] in _recognized[k-1][4]:
-                    #     si[j] = _recognized[m][5][0][1]
                 if k < len(id_list) - 1:
-                    #ei[j] = _recognized[k+1][5][0][0]
-                    
-                    #ei[ids[j]] = _recognized[k][6][ _recognized[k][4][j]  ][_recognized[k+1][5][0][0]]
-
-                    #if _recognized[k+1][5][0][0] < ei[ids[j]]:
+                    # take map from normalizer [k+1] and remap location on map of normalizer[k] as a boundary
                     if _recognized[k][7][ids[j]][_recognized[k+1][2]][0] < ei[ids[j]]:
-                        #ei[ids[j]] = _recognized[k+1][5][0][0]
                         ei[ids[j]] = _recognized[k][7][ids[j]][_recognized[k+1][2]][0]
-                    # m = k + 1
-                    # while m < len(id_list) - 1 and _recognized[k][4][j] not in _recognized[m][4]:
-                    #     m += 1
-                    # if _recognized[k][4][j] in _recognized[m][4]:
-                    #     ei[j] = _recognized[m][5][0][0]
-                #tokens[j] = src[j][si[j]:ei[j]]
-                #tokens.append(src[j][si[j]:ei[j]])
-                
-                #tokens[ids[j]] = src[j][si[j]:ei[j]]
                 tokens[ids[j]] = src[ids[j]][si[ids[j]]:ei[ids[j]]]
-
-                #s_tokens[j] = set(tokens[j].split(word_separator))
-                #s_tokens.append(set(tokens[j].split(word_separator)))
                 s_tokens[ids[j]] = set(tokens[ids[j]].split(word_separator))
-            # tmp = {i: model[model.KEYWORDS_KEY][model.CONTENT_KEY][i] if i in model[model.KEYWORDS_KEY][model.CONTENT_KEY] else set() for i in ids}
-            # kwd = {i: tmp[i] - tmp[j] for i in tmp for j in tmp if j != i}
             tmp = {i: model[model.KEYWORDS_KEY][model.CONTENT_KEY][i] if i in model[model.KEYWORDS_KEY][model.CONTENT_KEY] else set() for i in ids}
             kwd = {i: tmp[i] - tmp[j] for i in tmp for j in tmp if j != i}
             winner_score = 0
@@ -497,7 +478,7 @@ class Recognizer():
         self.logger('Parsing text...')
         self.push_message('Parsing text', self.callback_status)
         rets = []
-        total_normalizers = len(model[model.NORMALIZER_KEY])
+        total_normalizers = int(len(model[model.NORMALIZER_KEY]))
         spot_progress_share = int(100 / total_normalizers)
         current_normalizer_index = 0
         for normalizer_name in model[model.NORMALIZER_KEY]:
@@ -511,7 +492,7 @@ class Recognizer():
             current_normalizer_index += 1
         layers = self.flatten_layers(model, rets)
         spans = self.flatten_spans(layers)
-        locations = self.reduce_spans(spans.keys())
+        locations = self.reduce_spans(set(spans.keys()))
         ret = {location: spans[location] for location in locations}
         self.logger('Done parsing text.')
         return ret

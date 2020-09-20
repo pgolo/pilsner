@@ -9,28 +9,29 @@ import shutil
 
 class Model(dict):
 
-    CONTENT_KEY = '~content'
-    SPECS_KEY = '~specs'
-    COMPRESSED_KEY = '~compressed'
-    TOKENIZER_OPTION_KEY = '~tokenizer_option'
-    WORD_SEPARATOR_KEY = '~word_separator'
-    ENTITY_KEY = '~i'
-    ATTRS_KEY = '~p'
-    INTERNAL_ID_KEY = '~iid'
-    DICTIONARY_KEY = '~dictionary'
-    KEYWORDS_KEY = '~keywords'
-    NORMALIZER_KEY = '~normalization'
-    DEFAULT_NORMALIZER_KEY = '~default_normalizer'
-    DATASOURCE_KEY = '~datasource'
-
-    DEFAULT_DATASOURCE_PATH = '.'
-    DEFAULT_DATASOURCE_FILENAME = ''
-    DEFAULT_DATASOURCE = ''
-
-    DEFAULT_WORD_SEPARATOR = ' '
-    DEFAULT_TOKENIZER_OPTION = 0
-
     def __init__(self, filename='', storage_location='', debug_mode=False, verbose_mode=False):
+
+        self.CONTENT_KEY = '~content'
+        self.SPECS_KEY = '~specs'
+        self.COMPRESSED_KEY = '~compressed'
+        self.TOKENIZER_OPTION_KEY = '~tokenizer_option'
+        self.WORD_SEPARATOR_KEY = '~word_separator'
+        self.ENTITY_KEY = '~i'
+        self.ATTRS_KEY = '~p'
+        self.INTERNAL_ID_KEY = '~iid'
+        self.DICTIONARY_KEY = '~dictionary'
+        self.KEYWORDS_KEY = '~keywords'
+        self.NORMALIZER_KEY = '~normalization'
+        self.DEFAULT_NORMALIZER_KEY = '~default_normalizer'
+        self.DATASOURCE_KEY = '~datasource'
+
+        self.DEFAULT_DATASOURCE_PATH = '.'
+        self.DEFAULT_DATASOURCE_FILENAME = ''
+        self.DEFAULT_DATASOURCE = ''
+
+        self.DEFAULT_WORD_SEPARATOR = ' '
+        self.DEFAULT_TOKENIZER_OPTION = 0
+
         self.DEFAULT_DATASOURCE_FILENAME = storage_location
         if self.DEFAULT_DATASOURCE_FILENAME.lower() != ':memory:':
             while self.DEFAULT_DATASOURCE_FILENAME == '' or os.path.exists(self.DEFAULT_DATASOURCE):
@@ -52,11 +53,17 @@ class Model(dict):
         if filename != '':
             self.load(filename)
 
-    def __del__(self):
+    def destroy(self):
         # remove all temporary resources
         self.connection.close()
         if os.path.exists(self.DEFAULT_DATASOURCE):
             os.remove(self.DEFAULT_DATASOURCE)
+
+    def __del__(self):
+        try:
+            self.destroy()
+        except:
+            pass
 
     def save(self, filename):
         assert os.path.exists(self[self.DATASOURCE_KEY]), 'Cannot find temporary database on disk'
@@ -129,24 +136,27 @@ class Model(dict):
         logging.debug('Creating schema for permanent storage')
         cursor.execute('create table attrs (n integer, iid integer, attr_name text, attr_value text);')
         logging.debug('Created schema for permanent storage')
+        return True
 
     def pack_subtrie(self, trie, compressed, prefix):
         if not compressed:
             return trie, prefix
-        if type(trie) != dict:
-            return trie, prefix
+        # if type(trie) != dict:
+        #     return trie, prefix
         if prefix == self.ENTITY_KEY:
             return trie, prefix
         children = trie
-        child_count = len(children)
+        child_count = int(len(children))
         if child_count == 1:
-            for key, child in children.items():
+            for key in children:
                 if key == self.ENTITY_KEY:
                     if len(prefix) > 1:
                         return {prefix[1:]: trie}, prefix[0]
                     return trie, prefix
                 next_prefix = prefix + key
-                comp_child, comp_key = self.pack_subtrie(child, compressed, next_prefix)
+                if not isinstance(children[key], dict):
+                    return children[key], next_prefix
+                comp_child, comp_key = self.pack_subtrie(children[key], compressed, next_prefix)
                 if prefix == '':
                     comp_children = {comp_key: comp_child}
                 else:
@@ -154,8 +164,8 @@ class Model(dict):
                 return comp_children, comp_key
         else:
             comp_children = {}
-            for key, child in children.items():
-                comp_child, comp_key = self.pack_subtrie(child, compressed, key)
+            for key in children:
+                comp_child, comp_key = self.pack_subtrie(children[key], compressed, key)
                 comp_children[comp_key] = comp_child
             if len(prefix) > 1:
                 comp_children = {prefix[0]: {prefix[1:]: comp_children}}

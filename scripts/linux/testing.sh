@@ -1,6 +1,7 @@
 RUNDIR=`pwd`
 cd `dirname $0`
 MYDIR=`pwd`
+${MYDIR}/buildso.sh
 ROOT=${MYDIR}/../..
 ENV=.env.36
 TEST=${ROOT}/test

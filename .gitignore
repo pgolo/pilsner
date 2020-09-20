@@ -3,6 +3,7 @@
 build/*
 cythonized/*
 dist/*
+bin/*
 *.spec
 !**/.gitkeep
 !**/.gitignore
