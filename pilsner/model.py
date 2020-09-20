@@ -154,6 +154,8 @@ class Model(dict):
                         return {prefix[1:]: trie}, prefix[0]
                     return trie, prefix
                 next_prefix = prefix + key
+                if not isinstance(children[key], dict):
+                    return children[key], next_prefix
                 comp_child, comp_key = self.pack_subtrie(children[key], compressed, next_prefix)
                 if prefix == '':
                     comp_children = {comp_key: comp_child}
@@ -162,8 +164,8 @@ class Model(dict):
                 return comp_children, comp_key
         else:
             comp_children = {}
-            for key, child in children.items():
-                comp_child, comp_key = self.pack_subtrie(child, compressed, key)
+            for key in children:
+                comp_child, comp_key = self.pack_subtrie(children[key], compressed, key)
                 comp_children[comp_key] = comp_child
             if len(prefix) > 1:
                 comp_children = {prefix[0]: {prefix[1:]: comp_children}}

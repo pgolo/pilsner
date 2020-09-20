@@ -5,9 +5,12 @@ class TestUtility(unittest.TestCase):
 
     def setUp(self):
         self.recognizer = pilsner.Recognizer()
+        self.model = pilsner.Model()
 
     def tearDown(self):
         del(self.recognizer)
+        self.model.destroy()
+        del(self.model)
 
     def compile_test_model(self):
         fields = [
@@ -17,7 +20,7 @@ class TestUtility(unittest.TestCase):
             {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
         ]
         specs = self.recognizer.compile_dict_specs(fields)
-        model = pilsner.Model()
+        model = self.model
         model.add_normalizer('t1', 'test/assets/tokenizer1.xml')
         model.add_normalizer('t2', 'test/assets/tokenizer2.xml')
         model.normalizer_map = {
@@ -76,17 +79,17 @@ class TestUtility(unittest.TestCase):
             {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
         ]
         specs = self.recognizer.compile_dict_specs(fields)
-        model = pilsner.Model()
+        model = self.model
         model.create_recognizer_schema(model.cursor)
         test_trie = {}
-        self.recognizer.insert_node(label='the synonym', label_id=1, entity_id='10', subtrie=test_trie, specs=specs, columns=['', '', '', ''], model=model)
-        self.recognizer.insert_node('the synthesis', 2, '20', test_trie, specs, ['', '', '', ''], model)
+        self.recognizer.insert_node(label='the synonym', label_id=1, entity_id=10, subtrie=test_trie, specs=specs, columns=['', '', '', ''], model=model)
+        self.recognizer.insert_node('the synthesis', 2, 20, test_trie, specs, ['', '', '', ''], model)
         expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {'~i': [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {'~i': [2]}}}}}}}}}}}}}}
         assert test_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(test_trie))
 
     def test_remove_node(self):
         test_trie = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {'~i': [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {'~i': [1]}}}}}}}}}}}}}}
-        model = pilsner.Model()
+        model = self.model
         self.recognizer.remove_node(model=model, label='the synonym', subtrie=test_trie)
         expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'t': {'h': {'e': {'s': {'i': {'s': {'~i': [1]}}}}}}}}}}}}}}
         assert test_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(test_trie))
@@ -99,7 +102,7 @@ class TestUtility(unittest.TestCase):
             {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
         ]
         specs = self.recognizer.compile_dict_specs(fields)
-        model = pilsner.Model()
+        model = self.model
         got_recognizer, got_line_numbers = self.recognizer.make_recognizer(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', item_limit=0, compressed=True, column_separator='\t', column_enclosure='', tokenizer_option=0)
         expected_recognizer = [
             {
@@ -144,7 +147,7 @@ class TestUtility(unittest.TestCase):
             {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
         ]
         specs = self.recognizer.compile_dict_specs(fields)
-        model = pilsner.Model()
+        model = self.model
         _, got_line_numbers = self.recognizer.make_recognizer(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', item_limit=0, compressed=True, column_separator='\t', column_enclosure='', tokenizer_option=0)
         keywords = self.recognizer.make_keywords(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, line_numbers=got_line_numbers, word_separator=' ', disambiguate_all=False, column_separator='\t', column_enclosure='', tokenizer_option=0)
         expected = {
@@ -372,7 +375,7 @@ class TestUtility(unittest.TestCase):
         assert flattened == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(flattened))
 
     def test_reduce_spans(self):
-        segments = [tuple([1, 2]), tuple([3, 8]), tuple([1, 6]), tuple([2, 3])]
+        segments = set([tuple([1, 2]), tuple([3, 8]), tuple([1, 6]), tuple([2, 3])])
         expected = [tuple([1, 6])]
         reduced = self.recognizer.reduce_spans(segments)
         assert reduced == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(reduced))
@@ -396,5 +399,9 @@ if __name__ == '__main__':
     try:
         import bin as pilsner # pylint: disable=E0611,F0401
         unittest.main()
+        # x = TestUtility()
+        # x.setUp()
+        # x.compile_test_model()
+        # x.tearDown()
     except ModuleNotFoundError:
         print('Could not import module from /bin, test skipped.')
