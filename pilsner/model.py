@@ -53,11 +53,17 @@ class Model(dict):
         if filename != '':
             self.load(filename)
 
-    def __del__(self):
+    def destroy(self):
         # remove all temporary resources
         self.connection.close()
         if os.path.exists(self.DEFAULT_DATASOURCE):
             os.remove(self.DEFAULT_DATASOURCE)
+
+    def __del__(self):
+        try:
+            self.destroy()
+        except:
+            pass
 
     def save(self, filename):
         assert os.path.exists(self[self.DATASOURCE_KEY]), 'Cannot find temporary database on disk'
