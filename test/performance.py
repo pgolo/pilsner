@@ -151,6 +151,7 @@ specs = recognizer.compile_dict_specs(fields)
 """ % (x),
                     stmt="""
 recognizer.compile_model(model, '.test-dict.txt', specs, ' ', '\\t', '\\n', include_keywords=True)
+model.destroy()
 """,
                     number=n
                 )
@@ -177,6 +178,7 @@ recognizer.compile_model(model, '.test-dict.txt', specs, ' ', '\\t', '\\n', incl
 """ % (x),
                     stmt="""
 model.save('.test-model')
+model.destroy()
 """,
                     number=n
                 )
@@ -196,6 +198,7 @@ model = pilsner.Model()
 """ % (x),
                     stmt="""
 model.load('.test-model')
+model.destroy()
 """,
                     number=n
                 )
@@ -217,6 +220,7 @@ with open('.test-text.txt', mode='r', encoding='utf8') as f:
 """ % (x),
                     stmt="""
 found = recognizer.parse(model, test_text)
+model.destroy()
 """,
                     number=n
                 )
