@@ -57,7 +57,7 @@ class Recognizer():
         # NB: only works with uncompressed trie
         if label:
             head, tail = label[0], label[1:]
-            current_length = len(subtrie)
+            current_length = int(len(subtrie))
             next_length, bottom = self.remove_node(model, tail, subtrie=subtrie[head], prev_length=current_length)
             if bottom and next_length > 1:
                 bottom = False
@@ -90,7 +90,7 @@ class Recognizer():
             chars_read = 0
             trie = model.next_trie(specs, compressed, tokenizer_option, word_separator)
             for line in f:
-                chars_read += len(line)
+                chars_read += int(len(line))
                 this_progress_position = int(chars_read / increment_bytes)
                 if this_progress_position != last_progress_position:
                     last_progress_position = this_progress_position
@@ -130,7 +130,7 @@ class Recognizer():
             line_count = 0
             chars_read = 0
             for line in f:
-                chars_read += len(line)
+                chars_read += int(len(line))
                 this_progress_position = int(chars_read / increment_bytes)
                 if this_progress_position != last_progress_position:
                     last_progress_position = this_progress_position
@@ -218,7 +218,7 @@ class Recognizer():
 
     def check_attrs(self, model, trie_leaf, cur, include_query, exclude_query, process_exclude, attrs_out_query):
         trie_leaf[model.ATTRS_KEY] = self.unpack_attributes(cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
-        if len(trie_leaf[model.ATTRS_KEY]) == 0:
+        if int(len(trie_leaf[model.ATTRS_KEY])) == 0:
             return {}
         return trie_leaf
 
@@ -242,7 +242,7 @@ class Recognizer():
             shorter_alternative = None
             current_index = 0
             temporary_index = -1
-            total_length = len(source_string)
+            total_length = int(len(source_string))
             increment_chars = int(total_length / progress_share) if total_length > progress_share else total_length - 1
             while current_index < total_length:
                 this_progress_position = int(current_index / increment_chars / total_tries)
@@ -478,7 +478,7 @@ class Recognizer():
         self.logger('Parsing text...')
         self.push_message('Parsing text', self.callback_status)
         rets = []
-        total_normalizers = len(model[model.NORMALIZER_KEY])
+        total_normalizers = int(len(model[model.NORMALIZER_KEY]))
         spot_progress_share = int(100 / total_normalizers)
         current_normalizer_index = 0
         for normalizer_name in model[model.NORMALIZER_KEY]:
