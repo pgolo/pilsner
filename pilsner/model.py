@@ -8,6 +8,7 @@ import pickle
 import shutil
 
 class Model(dict):
+    """This class is a dict that stores tries and metadata, and provides functions and methods associated with the storage."""
 
     def __init__(self, filename='', storage_location='', debug_mode=False, verbose_mode=False):
 
@@ -54,7 +55,7 @@ class Model(dict):
             self.load(filename)
 
     def destroy(self):
-        # remove all temporary resources
+        """Close connection, remove temporary database"""
         self.connection.close()
         if os.path.exists(self.DEFAULT_DATASOURCE):
             os.remove(self.DEFAULT_DATASOURCE)
