@@ -11,7 +11,12 @@ class Model(dict):
     """This class is a dict that stores tries and metadata, and provides functions and methods associated with the storage."""
 
     def __init__(self, filename='', storage_location='', debug_mode=False, verbose_mode=False):
+        """Creates Model instance.
 
+        Args:
+            str *filename*: if provided, loads model from disk, see load() method
+            str *storage_location*:
+        """
         self.CONTENT_KEY = '~content'
         self.SPECS_KEY = '~specs'
         self.COMPRESSED_KEY = '~compressed'
@@ -55,18 +60,31 @@ class Model(dict):
             self.load(filename)
 
     def destroy(self):
-        """Close connection, remove temporary database"""
+        """Closes connection, removes temporary database."""
         self.connection.close()
         if os.path.exists(self.DEFAULT_DATASOURCE):
             os.remove(self.DEFAULT_DATASOURCE)
 
     def __del__(self):
+        """Desctructor"""
         try:
             self.destroy()
         except:
             pass
 
     def save(self, filename):
+        """Saves model to disk.
+        Note: this will throw exception if temporary database is stored in memory.
+
+        Args:
+            str *filename*: path and filename prefix for names of files that will be written.
+        
+        Example: model.save('filename') will write the following files:
+            filename.normalizers
+            filename.*.dictionary (can be multiple files, depends on model settings)
+            filename.keywords
+            filename.attributes
+        """
         assert os.path.exists(self[self.DATASOURCE_KEY]), 'Cannot find temporary database on disk'
         logging.debug('Saving model "%s"' % (filename))
         self.cursor.close()
@@ -95,6 +113,17 @@ class Model(dict):
         return True
 
     def load(self, filename):
+        """Loads model from disk.
+
+        Args:
+            str *filename*: path and filename prefix for names of files that represent the model on disk.
+        
+        Example: model.load('filename') will attempt reading following files:
+            filename.normalizers
+            filename.*.dictionary
+            filename.keywords
+            filename.attributes
+        """
         logging.debug('Loading model "%s"' % (filename))
         self[self.DATASOURCE_KEY] = '%s.attributes' % (filename)
         self.cursor.close()
@@ -124,6 +153,13 @@ class Model(dict):
         return True
 
     def add_normalizer(self, normalizer_name, filename, default=False):
+        """Adds normalization unit to the model.
+
+        Args:
+            str *normalizer_name*: name of normalization unit
+            str *filename*: path and name of configuration file
+            bool *default*: if True, model will use this normalization unit by default
+        """
         logging.debug('Adding normalizer "%s" from "%s"' % (normalizer_name, filename))
         normalizer = self.sic_builder.build_normalizer(filename)
         self[self.NORMALIZER_KEY][normalizer_name] = normalizer
@@ -134,12 +170,25 @@ class Model(dict):
         return True
 
     def create_recognizer_schema(self, cursor):
+        """Creates tables in the database that stores attributes of entities.
+
+        Args:
+            sqlite3.connect.cursor *cursor*: cursor to use for throwing queries
+        """
         logging.debug('Creating schema for permanent storage')
         cursor.execute('create table attrs (n integer, iid integer, attr_name text, attr_value text);')
         logging.debug('Created schema for permanent storage')
         return True
 
     def pack_subtrie(self, trie, compressed, prefix):
+        """Recursively compresses a trie.
+        Returns tuple (dict compressed_trie, str prefix).
+
+        Args:
+            dict *trie*: object representing a trie
+            bool *compressed*: whether a given trie must be compressed
+            str *prefix*: compressed prefix of a branch
+        """
         if not compressed:
             return trie, prefix
         # if type(trie) != dict:
@@ -174,6 +223,13 @@ class Model(dict):
             return comp_children, prefix
         
     def pack_trie(self, trie, compressed):
+        """Compresses all tries in a model.
+        Returns dict that contains all compressed tries.
+
+        Args:
+            dict *trie*: part of model that contains tries
+            bool *compressed*: whether tries in a given structure must be compressed
+        """
         ret = {k: trie[k] for k in trie if k != self.CONTENT_KEY}
         ret[self.CONTENT_KEY] = {}
         for normalizer_name in trie[self.CONTENT_KEY]:
@@ -182,6 +238,15 @@ class Model(dict):
         return ret
 
     def store_attributes(self, line_number, internal_id, subtrie, specs, columns):
+        """Flags terminus of a trie and writes attributes of an entry to the temporary database.
+
+        Args:
+            int *line_number*: number of line in a file that is supposed to be being read
+            int *internal_id*: internally assigned ID of an entity
+            dict *subtrie*: subtrie that is being constructed
+            dict *specs*: specs for columns in a file that is supposed to be being read
+            list *columns*: values in columns (attributes) in a file that is supposed to be being read
+        """
         if self.ENTITY_KEY not in subtrie:
             subtrie[self.ENTITY_KEY] = []
         subtrie[self.ENTITY_KEY].append(line_number)
@@ -194,6 +259,18 @@ class Model(dict):
                 _ = [self.cursor.execute('insert into attrs (n, iid, attr_name, attr_value) select ?, ?, ?, ?;', (line_number, internal_id, k, s)) for s in set(columns[specs['fields'][k][0]].split(specs['fields'][k][1]))]
 
     def get_dictionary_line(self, specs, entity_ids, line_numbers, line_number, line, column_separator, column_enclosure):
+        """Extracts values of columns in a file and associates them with internal entity ID.
+        Returns tuple (list *column_values*, int *internal_id*).
+
+        Args:
+            dict *specs*: specs for columns in a file that is supposed to be being read
+            dict *entity_ids*: map between real entity IDs and internally generated entity IDs
+            dict *line_numbers*: map between line numbers and internally generated entity IDs
+            int *line_number*: number of line that is being parsed
+            str *line*: line that is being parsed
+            str *column_separator*: delimiter to split columns
+            str *column_enclosure*: any string that columns are supposed to be trimmed of
+        """
         columns = [x.strip(column_enclosure) for x in line.strip('\n').split(column_separator)]
         if line_number in line_numbers:
             internal_id = line_numbers[line_number]
@@ -206,6 +283,15 @@ class Model(dict):
         return columns, internal_id
 
     def get_dictionary_synonym(self, columns, specs, word_separator, tokenizer_option=0):
+        """Extracts normalized synonym from list of column values.
+        Returns tuple (str *normalized_synonym*, str *normalization_unit_name*).
+
+        Args:
+            list *columns*: list of columns in a file that is supposed to be being read
+            dict *specs*: specs for columns in a file that is supposed to be being read
+            str *word_separator*: word separator to use for tokenization
+            int *tokenizer_option*: tokenizer mode (see documentation for normalization for details)
+        """
         synonym, normalizer_name = columns[specs['value'][0]], None
         if self[self.NORMALIZER_KEY]:
             if specs['tokenizer']:
@@ -220,6 +306,14 @@ class Model(dict):
         return synonym, normalizer_name
 
     def next_trie(self, specs, compressed, tokenizer_option, word_separator):
+        """Creates and returns dict that contains empty trie and metadata.
+        
+        Args:
+            dict *specs*: specs for columns in a file that is supposed to be being read for trie construction
+            bool *compressed*: whether constructed trie(s) must be compressed
+            int *tokenizer_option*: tokenizer mode (see documentation for normalization for details)
+            str *word_separator*: word separator to use for tokenization
+        """
         if len(self[self.NORMALIZER_KEY]) == 0:
             self.add_normalizer('bypass', '%s/normalizer.bypass.xml' % (os.path.abspath(os.path.dirname(__file__))))
         new_trie = {
