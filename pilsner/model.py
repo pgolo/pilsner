@@ -66,7 +66,7 @@ class Model(dict):
             os.remove(self.DEFAULT_DATASOURCE)
 
     def __del__(self):
-        """Desctructor"""
+        """Desctructor."""
         try:
             self.destroy()
         except:

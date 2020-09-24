@@ -2,8 +2,17 @@ import logging
 import os
 
 class Recognizer():
+    """This class is the utility for named entity recognition."""
 
     def __init__(self, debug_mode=False, verbose_mode=False, callback_status=None, callback_progress=None):
+        """Creates Recognizer instance.
+
+        Args:
+            bool *debug_mode*: toggle logger level to INFO
+            bool *verbose_mode*: toggle logger level to DEBUG
+            function *callback_status*: callback function that message about status can be passed to
+            function *callback_progress*: callback function that message about progress can be passed to
+        """
         logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s')
         self.debug = debug_mode
         self.verbose = verbose_mode
@@ -18,19 +27,37 @@ class Recognizer():
         logging.debug('Recognizer class has been initialized')
 
     def __del__(self):
-        # remove all temporary resources
+        """Destructor."""
         pass
 
     def push_message(self, message, callback_function):
+        """Passes message to callback_function.
+
+        Args:
+            str *message*: message to pass
+            function *callback_function*: function to take *message* as an argument
+        """
         if callback_function is not None:
             callback_function(message)
 
     def compile_dict_specs(self, fields):
+        """Reshapes list of fields' specifications into dict used by other members of Recognizer class.
+        Returns new dict with specifications.
+
+        Args:
+            list *fields*: list of fields (columns)
+        
+        Each member of *fields* list must be a dict as follows: {
+            'name': 'str name of attribute',
+            'include': bool True for including this column else False,
+            'delimiter': 'str delimiter in case column stores concatenated lists',
+            'id_flag': bool True if column stores entity ID else False,
+            'normalizer_flag': bool True if column stores string normalizer tag else False,
+            'value_flag': bool True if column stores string label to recognize else False
+        }
+        """
         logging.debug('Compiling specs')
         specs = {'fields': {}, 'id': None, 'tokenizer': None, 'value': None}
-        # {'name': 'DType', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': True, 'value_flag': False},
-        # specs = {'DType': (0, None, False, True, False), 'MSID': (1, None, True, False, False), 'value': (2, None, False, False, True)}
-        # specs = {'attr_name': (column_index, delimiter, normalizer_flag, value_flag)}
         for i in range(0, len(fields)):
             field = fields[i]
             if not field['include']:
@@ -46,7 +73,19 @@ class Recognizer():
         return specs
 
     def insert_node(self, label, label_id, entity_id, subtrie, specs, columns, model):
-        # NB: only works with uncompressed trie
+        """Inserts string into trie structure represented by dict object.
+
+        Args:
+            str *label*: string to insert
+            int *label_id*: ID of the label
+            int *entity_id*: ID of the entity given label belongs to
+            dict *subtrie*: object representing the trie
+            dict *specs*: dictionary specifications
+            list *columns*: list of values associated with the entity
+            *model*: instance of Model class handling the trie and metadata
+        
+        NB: only works with uncompressed trie!
+        """
         for character in label:
             if character not in subtrie:
                 subtrie[character] = {}
@@ -54,7 +93,16 @@ class Recognizer():
         model.store_attributes(label_id, entity_id, subtrie, specs, columns)
 
     def remove_node(self, model, label, subtrie, prev_length=0):
-        # NB: only works with uncompressed trie
+        """Removes string from trie structure represented by dict object.
+
+        Args:
+            *model*: instance of Model class handling the trie and metadata
+            str *label*: string to remove
+            dict *subtrie*: object representing the trie
+            int *pref_length*: length of substring found in the trie (used with recursion)
+
+        NB: only works with uncompressed trie!
+        """
         if label:
             head, tail = label[0], label[1:]
             current_length = int(len(subtrie))
