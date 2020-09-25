@@ -96,7 +96,7 @@ class Recognizer():
         """Removes string from trie structure represented by dict object.
 
         Args:
-            *model*: instance of Model class handling the trie and metadata
+            Model *model*: instance of Model class handling the trie and metadata
             str *label*: string to remove
             dict *subtrie*: object representing the trie
             int *pref_length*: length of substring found in the trie (used with recursion)
@@ -118,6 +118,20 @@ class Recognizer():
             return len(subtrie) + 1, True
 
     def make_recognizer(self, model, filename, specs, word_separator, item_limit, compressed, column_separator, column_enclosure, tokenizer_option):
+        """Reads tab-delimited text file, populates dict objects representing tries, and fills database associated with a given Model instance according to provided specs.
+        Returns tuple(list *tries*, dict *line_numbers*) where *tries* are populated dicts representing tries, *line_numbers* is dict that maps line numbers from the text file to internally generated entity IDs.
+
+        Args:
+            Model *model*: Model instance to populate
+            str *filename*: path and name of tab-delimited text file with the content
+            dict *specs*: specifications for columns in the text file
+            str *word_separator*: string considered to be the word delimiter
+            int *item_limit*: maximum number of rows to stuff in a single trie of a model
+            bool *compressed*: whether given tries must be compressed
+            str *column_separator*: delimiter to split columns
+            str *column_enclosure*: any string that columns are supposed to be trimmed of
+            int *tokenizer_option*: tokenizer mode (see documentation for normalization for details)
+        """
         # TODO: review for refactoring
         self.logger('Making recognizer using %s' % (filename))
         self.push_message('Making recognizer using %s' % (filename), self.callback_status)
@@ -165,6 +179,20 @@ class Recognizer():
         return ret, line_numbers
 
     def make_keywords(self, model, filename, specs, line_numbers, word_separator, disambiguate_all, column_separator, column_enclosure, tokenizer_option):
+        """Generates dictionary of keywords for a given model using tab-delimited text file that contains entity IDs and synonyms. Typically, for a given model it is the same file `make_recognizer()` function is processing.
+        Returns dict object can be plugged into model.
+
+        Args:
+            Model *model*: Model instance to use
+            str *filename*: path and name of tab-delimited text file with the content
+            dict *specs*: specifications for columns in the text file
+            dict *line_numbers*: dict that maps line numbers from the text file to internally generated entity IDs
+            str *word_separator*: string considered to be the word delimiter
+            bool *disambiguate_all*: whether generate keywords for all entities or only for those having conflicting synonyms
+            str *column_separator*: delimiter to split columns
+            str *column_enclosure*: any string that columns are supposed to be trimmed of
+            int *tokenizer_option*: tokenizer mode (see documentation for normalization for details)
+        """
         self.logger('Making keywords using %s... ' % (filename))
         self.push_message('Making keywords from {0}'.format(filename), self.callback_status)
         total_bytes = os.path.getsize(filename) + 1
@@ -212,6 +240,21 @@ class Recognizer():
         return keywords
 
     def compile_model(self, model, filename, specs, word_separator, column_separator, column_enclosure, compressed=True, item_limit=0, tokenizer_option=0, include_keywords=False, disambiguate_all=False):
+        """Populates given Model instance with tries and keywords.
+
+        Args:
+            Model *model*: Model instance to populate
+            str *filename*: path and name of tab-delimited text file with the content
+            dict *specs*: specifications for columns in the text file
+            str *word_separator*: string considered to be the word delimiter
+            str *column_separator*: delimiter to split columns
+            str *column_enclosure*: any string that columns are supposed to be trimmed of
+            bool *compressed*: whether given tries must be compressed
+            int *item_limit*: maximum number of rows to stuff in a single trie of a model
+            int *tokenizer_option*: tokenizer mode (see documentation for normalization for details)
+            bool *include_keywords*: whether generate keywords at all or not
+            bool *disambiguate_all*: whether generate keywords for all entities or only for those having conflicting synonyms
+        """
         tries, line_numbers = self.make_recognizer(model, filename, specs, word_separator, item_limit, compressed, column_separator, column_enclosure, tokenizer_option)
         keywords = {model.CONTENT_KEY: {}, model.INTERNAL_ID_KEY: {}}
         if include_keywords:
@@ -221,7 +264,13 @@ class Recognizer():
         return True
 
     def unpack_trie(self, model, packed_trie, compressed):
-        """TODO: add docstring here
+        """Unpacks compressed trie.
+        Returns dict object representing unpacked trie.
+
+        Args:
+            Model *model*: Model instance to use
+            dict *packed_trie*: trie to process
+            bool *compressed*: whether given trie is already compressed
         """
         if not compressed or len(packed_trie) != 1:
             return packed_trie
@@ -240,6 +289,17 @@ class Recognizer():
         return unpacked_trie
 
     def unpack_attributes(self, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
+        """Loads attributes for internal IDs found in a leaf of a trie from a model's database using associated sqlite3.connect.cursor object.
+        Returns dict object that maps internal IDs with attributes.
+
+        Args:
+            sqlite3.connect.cursor *cur*: cursor to use for throwing queries
+            list *leaf_ids*: internal IDs found in a trie leaf
+            str *include_query*: part of SQL query to filter something in
+            str *exclude_query*: part of SQL query to filter something out
+            bint *process_exclude*: whether use *exclude_query* at all
+            str *attrs_out_query*: part of SQL query that specifies which attributes to eventually return
+        """
         attributes = {}
         include_attrs = set()
         exclude_attrs = set()
@@ -265,12 +325,16 @@ class Recognizer():
         return attributes
 
     def check_attrs(self, model, trie_leaf, cur, include_query, exclude_query, process_exclude, attrs_out_query):
+        """
+        """
         trie_leaf[model.ATTRS_KEY] = self.unpack_attributes(cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
         if int(len(trie_leaf[model.ATTRS_KEY])) == 0:
             return {}
         return trie_leaf
 
     def spot_entities(self, model, source_string, normalizer_name, include_query='', exclude_query='', process_exclude=False, attrs_out_query='', progress_from=0, progress_to=100):
+        """
+        """
         # TODO: review for refactoring
         self.logger('Analyzing "%s"... ' % (source_string))
         rets = []
@@ -366,6 +430,8 @@ class Recognizer():
         return rets
 
     def disambiguate(self, model, recognized, srcs, word_separator):
+        """
+        """
         _recognized = sorted(recognized, key=lambda x: x[2])
         id_list = [[model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] for x in rec[0] if x in model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY]] for rec in _recognized]
         for k in range(len(id_list)):
@@ -407,6 +473,8 @@ class Recognizer():
         return _recognized
 
     def flatten_layers(self, model, layers):
+        """
+        """
         spans = {}
         srcs = []
         for i in range(0, len(layers)):
@@ -447,6 +515,8 @@ class Recognizer():
         return ret
 
     def flatten_spans(self, spans):
+        """
+        """
         ret = {}
         all_entries = []
         for span in spans:
@@ -474,6 +544,8 @@ class Recognizer():
         return ret
 
     def reduce_spans(self, segments):
+        """
+        """
         def intersects(segment1, segment2):
             return segment2[0] >= segment1[0] and segment2[0] <= segment1[1]
         def length(segment):
@@ -500,6 +572,8 @@ class Recognizer():
         return ret
 
     def parse(self, model, source_string, attrs_where=None, attrs_out=None):
+        """
+        """
         attributes = attrs_where
         if attributes is None:
             attributes = {}
