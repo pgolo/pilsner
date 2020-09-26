@@ -2,8 +2,17 @@ import logging
 import os
 
 class Recognizer():
+    """This class is the utility for named entity recognition."""
 
     def __init__(self, debug_mode=False, verbose_mode=False, callback_status=None, callback_progress=None):
+        """Creates Recognizer instance.
+
+        Args:
+            bool *debug_mode*: toggle logger level to INFO
+            bool *verbose_mode*: toggle logger level to DEBUG
+            function *callback_status*: callback function that message about status can be passed to
+            function *callback_progress*: callback function that message about progress can be passed to
+        """
         logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s')
         self.debug = debug_mode
         self.verbose = verbose_mode
@@ -18,19 +27,37 @@ class Recognizer():
         logging.debug('Recognizer class has been initialized')
 
     def __del__(self):
-        # remove all temporary resources
+        """Destructor."""
         pass
 
     def push_message(self, message, callback_function):
+        """Passes message to callback_function.
+
+        Args:
+            str *message*: message to pass
+            function *callback_function*: function to take *message* as an argument
+        """
         if callback_function is not None:
             callback_function(message)
 
     def compile_dict_specs(self, fields):
+        """Reshapes list of fields' specifications into dict used by other members of Recognizer class.
+        Returns new dict with specifications.
+
+        Args:
+            list *fields*: list of fields (columns)
+
+        Each member of *fields* list must be a dict as follows: {
+            'name': 'str name of attribute',
+            'include': bool True for including this column else False,
+            'delimiter': 'str delimiter in case column stores concatenated lists',
+            'id_flag': bool True if column stores entity ID else False,
+            'normalizer_flag': bool True if column stores string normalizer tag else False,
+            'value_flag': bool True if column stores string label to recognize else False
+        }
+        """
         logging.debug('Compiling specs')
         specs = {'fields': {}, 'id': None, 'tokenizer': None, 'value': None}
-        # {'name': 'DType', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': True, 'value_flag': False},
-        # specs = {'DType': (0, None, False, True, False), 'MSID': (1, None, True, False, False), 'value': (2, None, False, False, True)}
-        # specs = {'attr_name': (column_index, delimiter, normalizer_flag, value_flag)}
         for i in range(0, len(fields)):
             field = fields[i]
             if not field['include']:
@@ -46,7 +73,19 @@ class Recognizer():
         return specs
 
     def insert_node(self, label, label_id, entity_id, subtrie, specs, columns, model):
-        # NB: only works with uncompressed trie
+        """Inserts string into trie structure represented by dict object.
+
+        Args:
+            str *label*: string to insert
+            int *label_id*: ID of the label
+            int *entity_id*: ID of the entity given label belongs to
+            dict *subtrie*: object representing the trie
+            dict *specs*: dictionary specifications
+            list *columns*: list of values associated with the entity
+            *model*: instance of Model class handling the trie and metadata
+
+        NB: only works with uncompressed trie.
+        """
         for character in label:
             if character not in subtrie:
                 subtrie[character] = {}
@@ -54,7 +93,16 @@ class Recognizer():
         model.store_attributes(label_id, entity_id, subtrie, specs, columns)
 
     def remove_node(self, model, label, subtrie, prev_length=0):
-        # NB: only works with uncompressed trie
+        """Removes string from trie structure represented by dict object.
+
+        Args:
+            Model *model*: instance of Model class handling the trie and metadata
+            str *label*: string to remove
+            dict *subtrie*: object representing the trie
+            int *pref_length*: length of substring found in the trie (used with recursion)
+
+        NB: only works with uncompressed trie.
+        """
         if label:
             head, tail = label[0], label[1:]
             current_length = int(len(subtrie))
@@ -70,6 +118,20 @@ class Recognizer():
             return len(subtrie) + 1, True
 
     def make_recognizer(self, model, filename, specs, word_separator, item_limit, compressed, column_separator, column_enclosure, tokenizer_option):
+        """Reads tab-delimited text file, populates dict objects representing tries, and fills database associated with a given Model instance according to provided specs.
+        Returns tuple(list *tries*, dict *line_numbers*) where *tries* are populated dicts representing tries, *line_numbers* is dict that maps line numbers from the text file to internally generated entity IDs.
+
+        Args:
+            Model *model*: Model instance to populate
+            str *filename*: path and name of tab-delimited text file with the content
+            dict *specs*: specifications for columns in the text file
+            str *word_separator*: string considered to be the word delimiter
+            int *item_limit*: maximum number of rows to stuff in a single trie of a model
+            bool *compressed*: whether given tries must be compressed
+            str *column_separator*: delimiter to split columns
+            str *column_enclosure*: any string that columns are supposed to be trimmed of
+            int *tokenizer_option*: tokenizer mode (see documentation for normalization for details)
+        """
         # TODO: review for refactoring
         self.logger('Making recognizer using %s' % (filename))
         self.push_message('Making recognizer using %s' % (filename), self.callback_status)
@@ -117,6 +179,20 @@ class Recognizer():
         return ret, line_numbers
 
     def make_keywords(self, model, filename, specs, line_numbers, word_separator, disambiguate_all, column_separator, column_enclosure, tokenizer_option):
+        """Generates dictionary of keywords for a given model using tab-delimited text file that contains entity IDs and synonyms. Typically, for a given model it is the same file `make_recognizer()` function is processing.
+        Returns dict object can be plugged into model.
+
+        Args:
+            Model *model*: Model instance to use
+            str *filename*: path and name of tab-delimited text file with the content
+            dict *specs*: specifications for columns in the text file
+            dict *line_numbers*: dict that maps line numbers from the text file to internally generated entity IDs
+            str *word_separator*: string considered to be the word delimiter
+            bool *disambiguate_all*: whether generate keywords for all entities or only for those having conflicting synonyms
+            str *column_separator*: delimiter to split columns
+            str *column_enclosure*: any string that columns are supposed to be trimmed of
+            int *tokenizer_option*: tokenizer mode (see documentation for normalization for details)
+        """
         self.logger('Making keywords using %s... ' % (filename))
         self.push_message('Making keywords from {0}'.format(filename), self.callback_status)
         total_bytes = os.path.getsize(filename) + 1
@@ -164,6 +240,21 @@ class Recognizer():
         return keywords
 
     def compile_model(self, model, filename, specs, word_separator, column_separator, column_enclosure, compressed=True, item_limit=0, tokenizer_option=0, include_keywords=False, disambiguate_all=False):
+        """Populates given Model instance with tries and keywords.
+
+        Args:
+            Model *model*: Model instance to populate
+            str *filename*: path and name of tab-delimited text file with the content
+            dict *specs*: specifications for columns in the text file
+            str *word_separator*: string considered to be the word delimiter
+            str *column_separator*: delimiter to split columns
+            str *column_enclosure*: any string that columns are supposed to be trimmed of
+            bool *compressed*: whether given tries must be compressed
+            int *item_limit*: maximum number of rows to stuff in a single trie of a model
+            int *tokenizer_option*: tokenizer mode (see documentation for normalization for details)
+            bool *include_keywords*: whether generate keywords at all or not
+            bool *disambiguate_all*: whether generate keywords for all entities or only for those having conflicting synonyms
+        """
         tries, line_numbers = self.make_recognizer(model, filename, specs, word_separator, item_limit, compressed, column_separator, column_enclosure, tokenizer_option)
         keywords = {model.CONTENT_KEY: {}, model.INTERNAL_ID_KEY: {}}
         if include_keywords:
@@ -173,7 +264,13 @@ class Recognizer():
         return True
 
     def unpack_trie(self, model, packed_trie, compressed):
-        """TODO: add docstring here
+        """Unpacks compressed trie.
+        Returns dict object representing unpacked trie.
+
+        Args:
+            Model *model*: Model instance to use
+            dict *packed_trie*: trie to process
+            bool *compressed*: whether given trie is already compressed
         """
         if not compressed or len(packed_trie) != 1:
             return packed_trie
@@ -192,6 +289,17 @@ class Recognizer():
         return unpacked_trie
 
     def unpack_attributes(self, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
+        """Loads attributes for internal IDs found in a leaf of a trie from a model's database using associated sqlite3.connect.cursor object.
+        Returns dict object that maps internal IDs with attributes.
+
+        Args:
+            sqlite3.connect.cursor *cur*: cursor to use for throwing queries
+            list *leaf_ids*: internal IDs found in a trie leaf
+            str *include_query*: part of SQL query to filter something in
+            str *exclude_query*: part of SQL query to filter something out
+            bint *process_exclude*: whether use *exclude_query* at all
+            str *attrs_out_query*: part of SQL query that specifies which attributes to eventually return
+        """
         attributes = {}
         include_attrs = set()
         exclude_attrs = set()
@@ -217,12 +325,50 @@ class Recognizer():
         return attributes
 
     def check_attrs(self, model, trie_leaf, cur, include_query, exclude_query, process_exclude, attrs_out_query):
+        """Attaches attributes to a given trie leaf and returns it.
+
+        Args:
+            Model *model*: Model instance to use
+            dict *trie_leaf*: terminal node of a trie to attach attributes to
+            sqlite3.connect.cursor *cur*: cursor to use for throwing queries
+            str *include_query*: part of SQL query to filter something in
+            str *exclude_query*: part of SQL query to filter something out
+            bint *process_exclude*: whether use *exclude_query* at all
+            str *attrs_out_query*: part of SQL query that specifies which attributes to eventually return
+        """
         trie_leaf[model.ATTRS_KEY] = self.unpack_attributes(cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
         if int(len(trie_leaf[model.ATTRS_KEY])) == 0:
             return {}
         return trie_leaf
 
     def spot_entities(self, model, source_string, normalizer_name, include_query='', exclude_query='', process_exclude=False, attrs_out_query='', progress_from=0, progress_to=100):
+        """Zooms through a string, finds boundaries of synonyms stored in model's trie, and pulls associated attributes from the storage.
+        Returns list(list(tuple *datapoint*)) where datapoint is tuple(list *ids*, dict *attributes*, str *found_synonym*, int *begin*, int *end*) where *ids* are internal IDs of entities, *attributes* is dict {id_entity: {attribute: [value]}}, *found_synonym* is identified substring, *begin* and *end* are indexes of first and last character of recognized substring.
+
+        Args:
+            Model *model*: Model instance to use
+            str *source_string*: string to parse
+            str *normalizer_name*: name of normalization unit (used to pick the right trie from the model; supposed to match normalization unit applied to *source_string*)
+            str *include_query*: part of SQL query to filter something in
+            str *exclude_query*: part of SQL query to filter something out
+            bint *process_exclude*: whether use *exclude_query* at all
+            str *attrs_out_query*: part of SQL query that specifies which attributes to eventually return
+            int *progress_from*: initial progress value to report
+            int *progress_to*: maximum progress value to report
+
+        Data structure for returbed value:
+            [
+                (
+                    [int internal_ids],
+                    {
+                        int internal_id: {str attribute_name: [str attribute_value]}
+                    },
+                    str identified_label,
+                    int unmapped_begin,
+                    int unmapped_end
+                )
+            ]
+        """
         # TODO: review for refactoring
         self.logger('Analyzing "%s"... ' % (source_string))
         rets = []
@@ -318,6 +464,31 @@ class Recognizer():
         return rets
 
     def disambiguate(self, model, recognized, srcs, word_separator):
+        """For a list of identified datapoints, weighs context of identified labels that belong to more than 1 entity and keeps heaviest ones.
+        Returns filtered list of identified datapoints.
+
+        Args:
+            Model *model*: Model instance to use
+            list *recognized*: identified datapoints
+            list *srcs*: list of all normalized values of original string (using all normalization units applied)
+            str *word_separator*: string to be considered a word separator
+
+        Data structure for *recognized* (input) and for returned value:
+            [
+                (
+                    [int internal_ids],
+                    {
+                        int intenal_id: {str attribute_name: [str attribute_value]}
+                    },
+                    int mapped_begin,
+                    int mapped_end,
+                    [int indexes_in_srcs],
+                    [
+                        (int unmapped_begin, int unmapped_end)
+                    ]
+                )
+            ]
+        """
         _recognized = sorted(recognized, key=lambda x: x[2])
         id_list = [[model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] for x in rec[0] if x in model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY]] for rec in _recognized]
         for k in range(len(id_list)):
@@ -359,6 +530,43 @@ class Recognizer():
         return _recognized
 
     def flatten_layers(self, model, layers):
+        """Flattens list of lists of identified datapoints, invokes disambiguation, remaps label locations to the original string, reshapes the output.
+        Returns list(tuple *datapoint*) where *datapoint* is tuple(list *ids*, dict *attributes*, int *begin*, int *end*).
+
+        Args:
+            Model *model*: Model instance to use
+            list *layers*: list of identified datapoints
+        
+        Data structure for *layers* (input):
+            [
+                (
+                    (
+                        [int normalized_positions], # indexes are original positions
+                        [[int min_original_position, int max_original_position]], # indexes are normalized positions
+                    ),
+                    [
+                        (
+                            [int internal_ids],
+                            {int internal_id: {str attribute_name: [str attribute_value]}},
+                            str identified_label,
+                            int unmapped_begin,
+                            int unmapped_end
+                        )
+                    ],
+                    str parsed_normalized_string
+                )
+            ]
+        
+        Returned data structure:
+            [
+                (
+                    [int internal_ids],
+                    {int internal_id: {str attribute_name: [str attribute_value]}},
+                    int mapped_begin,
+                    int mapped_end
+                )
+            ]
+        """
         spans = {}
         srcs = []
         for i in range(0, len(layers)):
@@ -399,6 +607,12 @@ class Recognizer():
         return ret
 
     def flatten_spans(self, spans):
+        """Transforms list of normalized tuples into one dict.
+        Returns dict {(int *begin*, int *end*): {str *attribute_name*: {str *attribute_value*}}}.
+
+        Args:
+            list *spans*: list of identified datapoints, as returned by flatten_layers() function
+        """
         ret = {}
         all_entries = []
         for span in spans:
@@ -426,6 +640,12 @@ class Recognizer():
         return ret
 
     def reduce_spans(self, segments):
+        """Reduces overlapping segments by keeping longer ones or leftmost ones in case of equal length.
+        Returnes reduced list of tuples [(int *begin*, int *end*)].
+
+        Args:
+            set *segments*: set of tuples(int *begin*, int *end*)
+        """
         def intersects(segment1, segment2):
             return segment2[0] >= segment1[0] and segment2[0] <= segment1[1]
         def length(segment):
@@ -452,6 +672,21 @@ class Recognizer():
         return ret
 
     def parse(self, model, source_string, attrs_where=None, attrs_out=None):
+        """Wraps around all functions that normalize string, spot entities, disambiguate, and post-process the output.
+        Returns dict {(int *begin*, int *end*): {str *attribute_name*: {str attribute_value}}}.
+
+        Args:
+            Model *model*: Model instance to use
+            str *source_string*: source string to parse
+            dict *attrs_where*: specifications for filtering model's data used for recognition
+            list *attrs_out*: list of attribute names to output
+
+        Data structure for *attrs_where*:
+            {
+                '+': {str attribute_name: {str attribute_value}}, # if indicated, only entities that have these attributes will be considered
+                '-': {str attribute_name: {str attribute_value}} # if indicated, entities that have these attributes will not be considered
+            }
+        """
         attributes = attrs_where
         if attributes is None:
             attributes = {}
