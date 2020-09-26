@@ -46,7 +46,7 @@ class Recognizer():
 
         Args:
             list *fields*: list of fields (columns)
-        
+
         Each member of *fields* list must be a dict as follows: {
             'name': 'str name of attribute',
             'include': bool True for including this column else False,
@@ -83,8 +83,8 @@ class Recognizer():
             dict *specs*: dictionary specifications
             list *columns*: list of values associated with the entity
             *model*: instance of Model class handling the trie and metadata
-        
-        NB: only works with uncompressed trie!
+
+        NB: only works with uncompressed trie.
         """
         for character in label:
             if character not in subtrie:
@@ -101,7 +101,7 @@ class Recognizer():
             dict *subtrie*: object representing the trie
             int *pref_length*: length of substring found in the trie (used with recursion)
 
-        NB: only works with uncompressed trie!
+        NB: only works with uncompressed trie.
         """
         if label:
             head, tail = label[0], label[1:]
@@ -325,7 +325,16 @@ class Recognizer():
         return attributes
 
     def check_attrs(self, model, trie_leaf, cur, include_query, exclude_query, process_exclude, attrs_out_query):
-        """
+        """Attaches attributes to a given trie leaf and returns it.
+
+        Args:
+            Model *model*: Model instance to use
+            dict *trie_leaf*: terminal node of a trie to attach attributes to
+            sqlite3.connect.cursor *cur*: cursor to use for throwing queries
+            str *include_query*: part of SQL query to filter something in
+            str *exclude_query*: part of SQL query to filter something out
+            bint *process_exclude*: whether use *exclude_query* at all
+            str *attrs_out_query*: part of SQL query that specifies which attributes to eventually return
         """
         trie_leaf[model.ATTRS_KEY] = self.unpack_attributes(cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
         if int(len(trie_leaf[model.ATTRS_KEY])) == 0:
@@ -333,7 +342,32 @@ class Recognizer():
         return trie_leaf
 
     def spot_entities(self, model, source_string, normalizer_name, include_query='', exclude_query='', process_exclude=False, attrs_out_query='', progress_from=0, progress_to=100):
-        """
+        """Zooms through a string, finds boundaries of synonyms stored in model's trie, and pulls associated attributes from the storage.
+        Returns list(list(tuple *datapoint*)) where datapoint is tuple(list *ids*, dict *attributes*, str *found_synonym*, int *begin*, int *end*) where *ids* are internal IDs of entities, *attributes* is dict {id_entity: {attribute: [value]}}, *found_synonym* is identified substring, *begin* and *end* are indexes of first and last character of recognized substring.
+
+        Args:
+            Model *model*: Model instance to use
+            str *source_string*: string to parse
+            str *normalizer_name*: name of normalization unit (used to pick the right trie from the model; supposed to match normalization unit applied to *source_string*)
+            str *include_query*: part of SQL query to filter something in
+            str *exclude_query*: part of SQL query to filter something out
+            bint *process_exclude*: whether use *exclude_query* at all
+            str *attrs_out_query*: part of SQL query that specifies which attributes to eventually return
+            int *progress_from*: initial progress value to report
+            int *progress_to*: maximum progress value to report
+
+        Data structure for returbed value:
+            [
+                (
+                    [int internal_ids],
+                    {
+                        int internal_id: {str attribute_name: [str attribute_value]}
+                    },
+                    str identified_label,
+                    int unmapped_begin,
+                    int unmapped_end
+                )
+            ]
         """
         # TODO: review for refactoring
         self.logger('Analyzing "%s"... ' % (source_string))
@@ -430,7 +464,30 @@ class Recognizer():
         return rets
 
     def disambiguate(self, model, recognized, srcs, word_separator):
-        """
+        """For a list of identified datapoints, weighs context of identified labels that belong to more than 1 entity and keeps heaviest ones.
+        Returns filtered list of identified datapoints.
+
+        Args:
+            Model *model*: Model instance to use
+            list *recognized*: identified datapoints
+            list *srcs*: list of all normalized values of original string (using all normalization units applied)
+            str *word_separator*: string to be considered a word separator
+
+        Data structure for *recognized* (input) and for returned value:
+            [
+                (
+                    [int internal_ids],
+                    {
+                        int intenal_id: {str attribute_name: [str attribute_value]}
+                    },
+                    int mapped_begin,
+                    int mapped_end,
+                    [int indexes_in_srcs],
+                    [
+                        (int unmapped_begin, int unmapped_end)
+                    ]
+                )
+            ]
         """
         _recognized = sorted(recognized, key=lambda x: x[2])
         id_list = [[model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY][x] for x in rec[0] if x in model[model.KEYWORDS_KEY][model.INTERNAL_ID_KEY]] for rec in _recognized]
@@ -473,7 +530,42 @@ class Recognizer():
         return _recognized
 
     def flatten_layers(self, model, layers):
-        """
+        """Flattens list of lists of identified datapoints, invokes disambiguation, remaps label locations to the original string, reshapes the output.
+        Returns list(tuple *datapoint*) where *datapoint* is tuple(list *ids*, dict *attributes*, int *begin*, int *end*).
+
+        Args:
+            Model *model*: Model instance to use
+            list *layers*: list of identified datapoints
+        
+        Data structure for *layers* (input):
+            [
+                (
+                    (
+                        [int normalized_positions], # indexes are original positions
+                        [[int min_original_position, int max_original_position]], # indexes are normalized positions
+                    ),
+                    [
+                        (
+                            [int internal_ids],
+                            {int internal_id: {str attribute_name: [str attribute_value]}},
+                            str identified_label,
+                            int unmapped_begin,
+                            int unmapped_end
+                        )
+                    ],
+                    str parsed_normalized_string
+                )
+            ]
+        
+        Returned data structure:
+            [
+                (
+                    [int internal_ids],
+                    {int internal_id: {str attribute_name: [str attribute_value]}},
+                    int mapped_begin,
+                    int mapped_end
+                )
+            ]
         """
         spans = {}
         srcs = []
@@ -515,7 +607,11 @@ class Recognizer():
         return ret
 
     def flatten_spans(self, spans):
-        """
+        """Transforms list of normalized tuples into one dict.
+        Returns dict {(int *begin*, int *end*): {str *attribute_name*: {str *attribute_value*}}}.
+
+        Args:
+            list *spans*: list of identified datapoints, as returned by flatten_layers() function
         """
         ret = {}
         all_entries = []
@@ -544,7 +640,11 @@ class Recognizer():
         return ret
 
     def reduce_spans(self, segments):
-        """
+        """Reduces overlapping segments by keeping longer ones or leftmost ones in case of equal length.
+        Returnes reduced list of tuples [(int *begin*, int *end*)].
+
+        Args:
+            set *segments*: set of tuples(int *begin*, int *end*)
         """
         def intersects(segment1, segment2):
             return segment2[0] >= segment1[0] and segment2[0] <= segment1[1]
@@ -572,7 +672,20 @@ class Recognizer():
         return ret
 
     def parse(self, model, source_string, attrs_where=None, attrs_out=None):
-        """
+        """Wraps around all functions that normalize string, spot entities, disambiguate, and post-process the output.
+        Returns dict {(int *begin*, int *end*): {str *attribute_name*: {str attribute_value}}}.
+
+        Args:
+            Model *model*: Model instance to use
+            str *source_string*: source string to parse
+            dict *attrs_where*: specifications for filtering model's data used for recognition
+            list *attrs_out*: list of attribute names to output
+
+        Data structure for *attrs_where*:
+            {
+                '+': {str attribute_name: {str attribute_value}}, # if indicated, only entities that have these attributes will be considered
+                '-': {str attribute_name: {str attribute_value}} # if indicated, entities that have these attributes will not be considered
+            }
         """
         attributes = attrs_where
         if attributes is None:

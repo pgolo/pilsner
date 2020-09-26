@@ -78,7 +78,7 @@ class Model(dict):
 
         Args:
             str *filename*: path and filename prefix for names of files that will be written.
-        
+
         Example: model.save('filename') will write the following files:
             filename.normalizers
             filename.*.dictionary (can be multiple files, depends on model settings)
@@ -117,7 +117,7 @@ class Model(dict):
 
         Args:
             str *filename*: path and filename prefix for names of files that represent the model on disk.
-        
+
         Example: model.load('filename') will attempt reading following files:
             filename.normalizers
             filename.*.dictionary
@@ -307,7 +307,7 @@ class Model(dict):
 
     def next_trie(self, specs, compressed, tokenizer_option, word_separator):
         """Creates and returns dict that contains empty trie and metadata.
-        
+
         Args:
             dict *specs*: specs for columns in a file that is supposed to be being read for trie construction
             bool *compressed*: whether constructed trie(s) must be compressed
