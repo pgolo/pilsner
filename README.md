@@ -9,7 +9,7 @@ Python implemented library servicing named entity recognition
 
 ## Purpose
 
-Blah
+This library is intended to store any thesaurus in a trie-like structure and identify any of stored synonyms in a string.
 
 ## Installation and dependencies
 
