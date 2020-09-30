@@ -29,6 +29,70 @@ Image
 
 ```python
 import pilsner
+
+m = pilsner.Model()
+m.add_normalizer('default', 'default_normalizer.xml')
+m.add_normalizer('custom', 'custom_normalizer.xml')
+m.normalizer_map = {
+    'animal': 'default',
+    'plant': 'custom'
+}
+r = pilsner.Recognizer()
+    fields = [
+        {
+            'name': 'type',
+            'include': True,
+            'delimiter': None,
+            'id_flag': False,
+            'normalizer_flag': True,
+            'value_flag': False
+        },
+        {
+            'name': 'id',
+            'include': True,
+            'delimiter': None,
+            'id_flag': True,
+            'normalizer_flag': False,
+            'value_flag': False
+        },
+        {
+            'name': 'label',
+            'include': True,
+            'delimiter': None,
+            'id_flag': False,
+            'normalizer_flag': False,
+            'value_flag': True
+        },
+        {
+            'name': 'habitat',
+            'include': True,
+            'delimiter': ',',
+            'id_flag': False,
+            'normalizer_flag': False,
+            'value_flag': False
+        }
+    ]
+    specs = r.compile_dict_specs(fields)
+    r.compile_model(
+        model=m,
+        filename='living_things.txt',
+        specs=specs,
+        word_separator=' ',
+        column_separator='\t',
+        column_enclosure='\n',
+        include_keywords=True
+    )
+    m.save('living_things')
+    m = pilsner.Model('living_things')
+    text_to_parse = 'sample text here'
+    parsed = r.parse(
+        model=m,
+        source_string=text_to_parse,
+        attrs_where={
+            '+': {'habitat': {'air', 'ocean'}}
+        },
+        attrs_out=['id', 'type', 'habitat']
+    )
 ```
 
 ### 4.1. Initialize model
