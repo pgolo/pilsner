@@ -85,11 +85,13 @@ class Model(dict):
             filename.keywords
             filename.attributes
         """
-        assert os.path.exists(self[self.DATASOURCE_KEY]), 'Cannot find temporary database on disk'
+        try:
+            assert os.path.exists(self[self.DATASOURCE_KEY]), 'Cannot find temporary database on disk'
+            assert len(self[self.DICTIONARY_KEY]) > 0, 'Model is empty, nothing to save'
+        except Exception as e:
+            self.destroy()
+            raise e
         logging.debug('Saving model "%s"' % (filename))
-        if len(self[self.DICTIONARY_KEY]) == 0:
-            logging.warning('Model is empty, nothing saved')
-            return False
         self.cursor.close()
         self.connection.close()
         normalizers = {

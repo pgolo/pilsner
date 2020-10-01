@@ -716,6 +716,11 @@ class Recognizer():
         self.push_message('Parsing text', self.callback_status)
         rets = []
         total_normalizers = int(len(model[model.NORMALIZER_KEY]))
+        try:
+            assert total_normalizers > 0, 'Model does not have normalization units'
+        except Exception as e:
+            model.destroy()
+            raise e
         spot_progress_share = int(100 / total_normalizers)
         current_normalizer_index = 0
         for normalizer_name in model[model.NORMALIZER_KEY]:

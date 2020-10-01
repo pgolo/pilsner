@@ -70,10 +70,10 @@ r.compile_model(
 )
 
 # Save Model instance to disk
-#m.save('living_things')
+m.save('living_things')
 
 # Load Model instance from disk
-#m = pilsner.Model('living_things')
+m = pilsner.Model('living_things')
 
 # Parse string
 text_to_parse = 'sample text here a b c d c b a'
