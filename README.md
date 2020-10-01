@@ -38,67 +38,83 @@ m.normalizer_map = {
     'plant': 'custom'
 }
 r = pilsner.Recognizer()
-    fields = [
-        {
-            'name': 'type',
-            'include': True,
-            'delimiter': None,
-            'id_flag': False,
-            'normalizer_flag': True,
-            'value_flag': False
-        },
-        {
-            'name': 'id',
-            'include': True,
-            'delimiter': None,
-            'id_flag': True,
-            'normalizer_flag': False,
-            'value_flag': False
-        },
-        {
-            'name': 'label',
-            'include': True,
-            'delimiter': None,
-            'id_flag': False,
-            'normalizer_flag': False,
-            'value_flag': True
-        },
-        {
-            'name': 'habitat',
-            'include': True,
-            'delimiter': ',',
-            'id_flag': False,
-            'normalizer_flag': False,
-            'value_flag': False
-        }
-    ]
-    specs = r.compile_dict_specs(fields)
-    r.compile_model(
-        model=m,
-        filename='living_things.txt',
-        specs=specs,
-        word_separator=' ',
-        column_separator='\t',
-        column_enclosure='\n',
-        include_keywords=True
-    )
-    m.save('living_things')
-    m = pilsner.Model('living_things')
-    text_to_parse = 'sample text here'
-    parsed = r.parse(
-        model=m,
-        source_string=text_to_parse,
-        attrs_where={
-            '+': {'habitat': {'air', 'ocean'}}
-        },
-        attrs_out=['id', 'type', 'habitat']
-    )
+fields = [
+    {
+        'name': 'type',
+        'include': True,
+        'delimiter': None,
+        'id_flag': False,
+        'normalizer_flag': True,
+        'value_flag': False
+    },
+    {
+        'name': 'id',
+        'include': True,
+        'delimiter': None,
+        'id_flag': True,
+        'normalizer_flag': False,
+        'value_flag': False
+    },
+    {
+        'name': 'label',
+        'include': True,
+        'delimiter': None,
+        'id_flag': False,
+        'normalizer_flag': False,
+        'value_flag': True
+    },
+    {
+        'name': 'habitat',
+        'include': True,
+        'delimiter': ',',
+        'id_flag': False,
+        'normalizer_flag': False,
+        'value_flag': False
+    }
+]
+specs = r.compile_dict_specs(fields)
+r.compile_model(
+    model=m,
+    filename='living_things.txt',
+    specs=specs,
+    word_separator=' ',
+    column_separator='\t',
+    column_enclosure='\n',
+    include_keywords=True
+)
+m.save('living_things')
+m = pilsner.Model('living_things')
+text_to_parse = 'sample text here'
+parsed = r.parse(
+    model=m,
+    source_string=text_to_parse,
+    attrs_where={
+        '+': {'habitat': {'air', 'ocean'}}
+    },
+    attrs_out=['id', 'type', 'habitat']
+)
 ```
+
+`pilsner` consists of two major components: `Model` and `Recognizer`. `Model` class provides storage for the dictionary and string normalization rules, as well as methods for populating this storage. `Recognizer` class provides methods for accessing `Model`.
 
 ### 4.1. Initialize model
 
+To initialize empty model:
+
 ```python
 m = pilsner.Model()
+```
+
+To specify path to temporary database for empty model:
+
+```python
+m = pilsner.Model(storage_location='path/to/database.file')
+```
+
+To load model from disk:
+
+```python
+m = pilsner.Model(filename='path/to/model')
 ```
 
 ### 4.2. Add string normalization units
