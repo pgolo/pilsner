@@ -375,6 +375,8 @@ class Recognizer():
         this_progress_position = 0
         last_progress_position = 0
         total_tries = len(model[model.DICTIONARY_KEY])
+        if total_tries == 0:
+            return rets
         progress_share = progress_to - progress_from
         trie_increment = int(progress_share / total_tries)
         current_trie_index = 0
