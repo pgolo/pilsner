@@ -10,8 +10,8 @@ import pilsner
 m = pilsner.Model()
 
 # Add normalization units
-#m.add_normalizer('default', 'example/default_normalizer.xml')
-#m.add_normalizer('custom', 'example/custom_normalizer.xml')
+#m.add_normalizer('default', 'misc/example/default_normalizer.xml')
+#m.add_normalizer('custom', 'misc/example/custom_normalizer.xml')
 
 # Map names of normalization units to some string values
 m.normalizer_map = {
@@ -22,7 +22,7 @@ m.normalizer_map = {
 # Initialize Recognizer class
 r = pilsner.Recognizer()
 
-# Provide table definition for example/living_fileds.txt file
+# Provide table definition for misc/example/living_fileds.txt file
 fields = [
     {
         'name': 'type',             # attribute name is 'type'
