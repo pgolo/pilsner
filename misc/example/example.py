@@ -1,3 +1,6 @@
+# Either install pilsner package to the environment first,
+# or run this from project's root
+
 import sys; sys.path.insert(0, '')
 
 # Import pilsner
@@ -58,10 +61,10 @@ fields = [
 # Convert table definition into internally used `specs` structure
 specs = r.compile_dict_specs(fields)
 
-# Populate Model instance with data from example/living_things.txt file
+# Populate Model instance with data from misc/example/living_things.txt file
 r.compile_model(
     model=m,
-    filename='example/living_things.txt',
+    filename='misc/example/living_things.txt',
     specs=specs,
     word_separator=' ',
     column_separator='\t',
@@ -70,10 +73,10 @@ r.compile_model(
 )
 
 # Save Model instance to disk
-m.save('living_things')
+m.save('misc/example/living_things')
 
 # Load Model instance from disk
-m = pilsner.Model('living_things')
+m = pilsner.Model('misc/example/living_things')
 
 # Parse string
 text_to_parse = 'sample text here a b c d c b a'
@@ -86,4 +89,5 @@ parsed = r.parse(
     attrs_out=['id', 'type', 'habitat']
 )
 
+# Print out the result
 print(parsed)
