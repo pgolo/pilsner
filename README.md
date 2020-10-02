@@ -23,7 +23,7 @@ The only dependency is `sic` package. While it can be automatically installed at
 
 ## 3. Diagram
 
-Image
+![Diagram](misc/pilsner-diagram.svg)
 
 ## 4. Usage
 
