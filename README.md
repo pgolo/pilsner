@@ -99,23 +99,31 @@ parsed = r.parse(
 
 ### 4.1. Initialize model
 
-To initialize empty model:
+- To initialize empty model:
 
 ```python
 m = pilsner.Model()
 ```
 
-To specify path to temporary database for empty model:
+- To specify path to temporary database for empty model:
 
 ```python
+# For temporary database to be created on disk:
 m = pilsner.Model(storage_location='path/to/database.file')
+
+# For temporary database to be created in memory:
+m = pilsner.Model(storage_location=':memory:')
 ```
 
-To load model from disk:
+> If database is created in memory, the model cannot be later saved on disk (can only be used instantly).
+
+- To load model from disk:
 
 ```python
 m = pilsner.Model(filename='path/to/model')
 ```
+
+> More on how model is loaded from disk - see [4.7. Load model](#47-load-model).
 
 ### 4.2. Add string normalization units
 
