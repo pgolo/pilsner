@@ -127,11 +127,17 @@ m = pilsner.Model(storage_location=':memory:')
 m = pilsner.Model(filename='path/to/model')
 ```
 
-> More on how model is loaded from disk - see [4.7. Load model](#47-load-model).
+> More on how model is saved to and loaded from disk - see [4.6. Save model](#46-save-model) and [4.7. Load model](#47-load-model).
 
 ### 4.2. Add string normalization units
 
-String normalization is technically done by `sic` component.
+```python
+# Assuming m is pilsner.Model instance:
+m.add_normalizer(
+    normalizer_name='normalizer_tag',
+    filename='path/to/normalizer_config.xml'
+)
+```
 
 ### 4.3. Add dictionary
 
