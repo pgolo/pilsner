@@ -112,10 +112,12 @@ m = pilsner.Model()
 - To specify path to temporary database for empty model:
 
 ```python
-# For temporary database to be created on disk:
 m = pilsner.Model(storage_location='path/to/database.file')
+```
 
-# For temporary database to be created in memory:
+- To create empty model that uses database created in memory rather than on disk:
+
+```python
 m = pilsner.Model(storage_location=':memory:')
 ```
 
