@@ -23,9 +23,15 @@ The only dependency is `sic` package. While it can be automatically installed at
 
 ## 3. Diagram
 
+`pilsner` consists of two major components: `Model` and `Recognizer`. `Model` class provides storage for the dictionary and string normalization rules, as well as methods for populating this storage. `Recognizer` class provides methods for accessing `Model`.
+
 ![Diagram](misc/pilsner-diagram.svg)
 
 ## 4. Usage
+
+```python
+import pilsner
+```
 
 ```python
 import pilsner
@@ -95,8 +101,6 @@ parsed = r.parse(
 )
 ```
 
-`pilsner` consists of two major components: `Model` and `Recognizer`. `Model` class provides storage for the dictionary and string normalization rules, as well as methods for populating this storage. `Recognizer` class provides methods for accessing `Model`.
-
 ### 4.1. Initialize model
 
 To initialize empty model:
@@ -119,7 +123,7 @@ m = pilsner.Model(filename='path/to/model')
 
 ### 4.2. Add string normalization units
 
-String normalization is done by `sic` component.
+String normalization is technically done by `sic` component.
 
 ### 4.3. Add dictionary
 
