@@ -133,6 +133,11 @@ m = pilsner.Model(filename='path/to/model')
 
 ### 4.2. Add string normalization units
 
+Depending on the dictionary and nature of the text supposed to be parsed, string normalization might not be required at all, and nothing specific is to be done in such case.
+
+- Without string normalization, synonyms from the dictionary will be stored as they are and looked up by recognizer case-sensitively.
+- To add a single normalization unit:
+
 ```python
 # Assuming m is pilsner.Model instance:
 m.add_normalizer(
@@ -141,15 +146,20 @@ m.add_normalizer(
 )
 ```
 
-### 4.3. Add dictionary
+> String normalization is technically done by `sic` component. See documentation for `sic` at [https://pypi.org/project/sic/](https://pypi.org/project/sic/) to learn how to design normalizer config.
 
-Blah
+- Model can embed more than one normalization unit.
+- Default normalization unit for the model is the one added first or the last one added with parameter `default` set to `True`.
 
-### 4.4. Initialize utility
+### 4.3. Initialize utility
 
 ```python
 r = pilsner.Recognizer()
 ```
+
+### 4.4. Add dictionary
+
+Blah
 
 ### 4.5. Compile model
 
