@@ -140,17 +140,17 @@ def perf_compile_model_save_model(modules_to_test):
 import %s as pilsner
 model = pilsner.Model()
 model.add_normalizer('standard', None)
-recognizer = pilsner.Recognizer()
+utility = pilsner.Utility()
 fields = [
     {'name': 'entity_id', 'include': True, 'delimiter': None, 'id_flag': True, 'normalizer_flag': False, 'value_flag': False},
     {'name': 'label', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': True},
     {'name': 'label_attr', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False},
     {'name': 'entity_attr', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
 ]
-specs = recognizer.compile_dict_specs(fields)
+specs = utility.compile_dict_specs(fields)
 """ % (x),
                     stmt="""
-recognizer.compile_model(model, '.test-dict.txt', specs, ' ', '\\t', '\\n', include_keywords=True)
+utility.compile_model(model, '.test-dict.txt', specs, ' ', '\\t', '\\n', include_keywords=True)
 model.destroy()
 """,
                     number=n
@@ -166,15 +166,15 @@ model.destroy()
 import %s as pilsner
 model = pilsner.Model()
 model.add_normalizer('standard', None)
-recognizer = pilsner.Recognizer()
+utility = pilsner.Utility()
 fields = [
     {'name': 'entity_id', 'include': True, 'delimiter': None, 'id_flag': True, 'normalizer_flag': False, 'value_flag': False},
     {'name': 'label', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': True},
     {'name': 'label_attr', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False},
     {'name': 'entity_attr', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
 ]
-specs = recognizer.compile_dict_specs(fields)
-recognizer.compile_model(model, '.test-dict.txt', specs, ' ', '\\t', '\\n', include_keywords=True)
+specs = utility.compile_dict_specs(fields)
+utility.compile_model(model, '.test-dict.txt', specs, ' ', '\\t', '\\n', include_keywords=True)
 """ % (x),
                     stmt="""
 model.save('.test-model')
@@ -214,12 +214,12 @@ model.destroy()
 import %s as pilsner
 model = pilsner.Model()
 model.load('.test-model')
-recognizer = pilsner.Recognizer()
+utility = pilsner.Utility()
 with open('.test-text.txt', mode='r', encoding='utf8') as f:
     test_text = f.read()
 """ % (x),
                     stmt="""
-found = recognizer.parse(model, test_text)
+found = utility.parse(model, test_text)
 model.destroy()
 """,
                     number=n

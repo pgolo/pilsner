@@ -1,6 +1,6 @@
 import cython
 
-cdef class Recognizer():
+cdef class Utility():
 
     cdef public bint debug
     cdef public bint verbose

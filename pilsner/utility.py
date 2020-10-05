@@ -1,11 +1,11 @@
 import logging
 import os
 
-class Recognizer():
+class Utility():
     """This class is the utility for named entity recognition."""
 
     def __init__(self, debug_mode=False, verbose_mode=False, callback_status=None, callback_progress=None):
-        """Creates Recognizer instance.
+        """Creates Utility instance.
 
         Args:
             bool *debug_mode*: toggle logger level to INFO
@@ -24,7 +24,7 @@ class Recognizer():
             self.logger('Debug mode is on')
         self.callback_status = callback_status
         self.callback_progress = callback_progress
-        logging.debug('Recognizer class has been initialized')
+        logging.debug('Utility class has been initialized')
 
     def __del__(self):
         """Destructor."""
@@ -41,7 +41,7 @@ class Recognizer():
             callback_function(message)
 
     def compile_dict_specs(self, fields):
-        """Reshapes list of fields' specifications into dict used by other members of Recognizer class.
+        """Reshapes list of fields' specifications into dict used by other members of Utility class.
         Returns new dict with specifications.
 
         Args:

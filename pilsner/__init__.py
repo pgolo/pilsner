@@ -1,2 +1,2 @@
 from .model import Model
-from .utility import Recognizer
+from .utility import Utility

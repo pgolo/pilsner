@@ -19,8 +19,8 @@ m.normalizer_map = {
     'plant': 'custom'
 }
 
-# Initialize Recognizer class
-r = pilsner.Recognizer()
+# Initialize Utility class
+r = pilsner.Utility()
 
 # Provide table definition for misc/example/living_fileds.txt file
 fields = [

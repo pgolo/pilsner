@@ -18,7 +18,7 @@ def save_it():
         'tokenizer1': 'tokenizer1',
         'tokenizer2': 'tokenizer2'
     }
-    r = pilsner.Recognizer(callback_status=callback_update_status, callback_progress=callback_update_mesage)
+    r = pilsner.Utility(callback_status=callback_update_status, callback_progress=callback_update_mesage)
     specs = {'DType': (0, None, True, False), 'MSID': (1, None, False, False), 'value': (2, None, False, True)}
     fields = [
         {'name': 'DType', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': True, 'value_flag': False},
@@ -38,7 +38,7 @@ def save_it():
     m.save('.test_model')
 
 def load_it():
-    rrr = pilsner.Recognizer(callback_status=callback_update_status, callback_progress=callback_update_mesage)
+    rrr = pilsner.Utility(callback_status=callback_update_status, callback_progress=callback_update_mesage)
     m = pilsner.Model('.test_model')
     s = 'this is awesome white refrigerators o refrigerator, is it not'
     s *= 10
@@ -50,7 +50,7 @@ save_it()
 load_it()
 
 #segments = [tuple([1, 2]), tuple([3, 8]), tuple([1, 6]), tuple([2, 3])]
-#r = Recognizer()
+#r = Utility()
 #red = r.reduce(segments)
 #print(red)
 
@@ -60,7 +60,7 @@ print(_status)
 #layers = [([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 30, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 42, 43, 44, 45, 46, 47, 48, 49, 50], [([0], {0: {'MSID': ['entity2'], 'smth': ['C', 'D', 'E']}}, 'acinic cell carcino mas', 8, 31)]), ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 42, 43, 44, 45, 46, 47, 48, 49, 50], [([2], {2: {'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}}, 'acinic carcinomas', 8, 25), ([5], {5: {'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}}, 'it', 45, 46), ([6], {6: {'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}}, 'o', 26, 27)])]
 #layers = [([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 30, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 42, 43, 44, 45, 46, 47, 48, 49, 50], [([0], {0: {'MSID': ['entity2'], 'smth': ['C', 'D', 'E']}}, 'acinic cell carcino mas', 8, 31)]), ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 42, 43, 44, 45, 46, 47, 48, 49, 50], [([2], {2: {'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}}, 'acinic carcinomas', 8, 26), ([5], {5: {'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}}, 'it', 45, 46), ([6], {6: {'MSID': ['entity1'], 'smth': ['A', 'B', 'C']}}, 'o', 26, 27)])]
 
-#rrr = pilsner.Recognizer(callback_status=callback_update_status, callback_progress=callback_update_mesage)
+#rrr = pilsner.Utility(callback_status=callback_update_status, callback_progress=callback_update_mesage)
 #x = rrr.flatten(layers)
 #print(x)
 
