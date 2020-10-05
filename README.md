@@ -150,6 +150,17 @@ m.add_normalizer(
 
 - Model can embed more than one normalization unit.
 - Default normalization unit for the model is the one added first or the last one added with parameter `default` set to `True`.
+- Having multiple normalization units in one model makes perfect sense when the stored dictionary contains synonyms of different nature that should be normalized in different ways (for example, abbreviations probably should not get normalized at all, while other synonyms might include tokens or punctuation marks that should not affect entity recognition). For that purpose, Model class includes `normalizer_map` dict that is supposed to map names of added normalization units to values in specific field in a dictionary designating the way a synonym should be normalized (tokenizer field, or tokenizer column):
+
+```python
+# Assuming m is pilsner.Model instance:
+m.normalizer_map = {
+    'synonym_type_1': 'normalizer_1',
+    'synonym_type_2': 'normalizer_2'
+}
+```
+
+> The snippet above instructs `pilsner` to normalize synonyms that have `synonym_type_1` value in `tokenizer` column with `normalizer_1` normalization unit, and normalize synonyms that have `synonym_type_2` value in `tokenizer` column with `normalizer_2` normalization unit. More about fields in the dictionary, see [4.4. Add dictionary](#44-add-dictionary).
 
 ### 4.3. Initialize utility
 
