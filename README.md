@@ -23,7 +23,7 @@ The only dependency is `sic` package. While it can be automatically installed at
 
 ## 3. Diagram
 
-`pilsner` consists of two major components: `Model` and `Utility`. `Model` class provides storage for the dictionary and string normalization rules, as well as methods for populating this storage. `Utility` class provides methods for accessing `Model`.
+`pilsner` consists of two major components: `Model` and `Utility`. `Model` class provides storage for the dictionary and string normalization rules, as well as low-level methods for populating this storage. `Utility` class provides high-level methods for storing and retrieving data to/from `Model` instance.
 
 ![Diagram](misc/pilsner-diagram.svg)
 
@@ -31,74 +31,6 @@ The only dependency is `sic` package. While it can be automatically installed at
 
 ```python
 import pilsner
-```
-
-```python
-import pilsner
-
-m = pilsner.Model()
-m.add_normalizer('default', 'default_normalizer.xml')
-m.add_normalizer('custom', 'custom_normalizer.xml')
-m.normalizer_map = {
-    'animal': 'default',
-    'plant': 'custom'
-}
-r = pilsner.Utility()
-fields = [
-    {
-        'name': 'type',
-        'include': True,
-        'delimiter': None,
-        'id_flag': False,
-        'normalizer_flag': True,
-        'value_flag': False
-    },
-    {
-        'name': 'id',
-        'include': True,
-        'delimiter': None,
-        'id_flag': True,
-        'normalizer_flag': False,
-        'value_flag': False
-    },
-    {
-        'name': 'label',
-        'include': True,
-        'delimiter': None,
-        'id_flag': False,
-        'normalizer_flag': False,
-        'value_flag': True
-    },
-    {
-        'name': 'habitat',
-        'include': True,
-        'delimiter': ',',
-        'id_flag': False,
-        'normalizer_flag': False,
-        'value_flag': False
-    }
-]
-specs = r.compile_dict_specs(fields)
-r.compile_model(
-    model=m,
-    filename='living_things.txt',
-    specs=specs,
-    word_separator=' ',
-    column_separator='\t',
-    column_enclosure='\n',
-    include_keywords=True
-)
-m.save('living_things')
-m = pilsner.Model('living_things')
-text_to_parse = 'sample text here'
-parsed = r.parse(
-    model=m,
-    source_string=text_to_parse,
-    attrs_where={
-        '+': {'habitat': {'air', 'ocean'}}
-    },
-    attrs_out=['id', 'type', 'habitat']
-)
 ```
 
 ### 4.1. Initialize model
@@ -133,8 +65,7 @@ m = pilsner.Model(filename='path/to/model')
 
 ### 4.2. Add string normalization units
 
-Depending on the dictionary and nature of the text supposed to be parsed, string normalization might not be required at all, and nothing specific is to be done in such case.
-
+- Depending on the dictionary and nature of the text supposed to be parsed, string normalization might not be required at all, and nothing specific is to be done here in such case.
 - Without string normalization, synonyms from the dictionary will be stored as they are and looked up by recognizer case-sensitively.
 - To add a single normalization unit:
 
@@ -160,34 +91,106 @@ m.normalizer_map = {
 }
 ```
 
-> The snippet above instructs `pilsner` to normalize synonyms that have `synonym_type_1` value in `tokenizer` column with `normalizer_1` normalization unit, and normalize synonyms that have `synonym_type_2` value in `tokenizer` column with `normalizer_2` normalization unit. More about fields in the dictionary, see [4.4. Add dictionary](#44-add-dictionary).
+> The snippet above instructs `pilsner` to normalize synonyms that have `synonym_type_1` value in `tokenizer` column with `normalizer_1` normalization unit, and normalize synonyms that have `synonym_type_2` value in `tokenizer` column with `normalizer_2` normalization unit. More about fields in the dictionary, see [4.4. Define dictionary](#44-define-dictionary).
 
 ### 4.3. Initialize utility
+
+- To load dictionary into `Model` instance, as well as to parse text, the `Utility` instance is required:
 
 ```python
 r = pilsner.Utility()
 ```
 
-### 4.4. Add dictionary
+### 4.4. Define dictionary
 
-Blah
+- Source dictionary for `pilsner` must be delimited text file.
+- Along with the source dictionary, specifications of the columns (fields) must be provided as list where each item corresponds to a column (from left to right). Each item in this list must be a dict object with string keys `name`, `include`, `delimiter`, `id_flag`, `normalizer_flag`, and `value_flag`, so that:
+  - `field['name']` is a string for column title;
+  - `field['include']` is a boolean that must be set to `True` for the column to be included in the model, otherwise `False`;
+  - `field['delimiter']` is a string that is supposed to split single cell into list of values if the column holds concatenated lists rather than individual values;
+  - `field['id_flag]` is a boolean that must be set to `True` if the column is supposed to be used for grouping synonyms (generally, entity ID is such column), otherwise `False`;
+  - `field['normalizer_flag']` is a boolean that must be set to `True` if the column holds indication on what normalization unit must be applied to this particular synonym, otherwise `False`;
+  - `field['value_flag']` is a boolean that must be set to `True` if the column holds synonyms that are supposed to be looked up when parsing a text, otherwise `False`.
+
+> If dictionary has a column flagged with `normalizer_flag`, synonym in each row will be normalized with string normalization unit which name is mapped on value in this column using `pilsner.Model.normalizer_map` dict. If value is not among `pilsner.Model.normalizer_map` keys, default normalization unit will be used.
 
 ### 4.5. Compile model
 
-Blah
+- To store dictionary in `Model` instance, method `compile_model` of `Utility` instance must be called with the following required parameters:
+  - `model`: pointer to initilized `Model` instance;
+  - `filename`: string with path and filename of source dictionary;
+  - `fields`: dict object with definitions of columns (see [4.4. Define dictionary](#44-define-dictionary));
+  - `word_separator`: string defining what is to be considered word separator (generally, it should be whitespace);
+  - `column_separator`: string defining what is to be considered column separator (e.g. `\t` for tab-delimited file);
+  - `column_enclosure`: string defining what is to be stripped away from cell after row has been split into columns (typically, it should be `\n` for new line character to be trimmed from the rightmost column).
+
+```python
+# Assuming m is pilsner.Model instance and r is pilsner.Utility instance:
+r.compile_model(
+    model=m,
+    filename='path/to/dictionary_in_a_text_file.txt',
+    fields=fields,
+    word_separator=' ',
+    column_separator='\t',
+    column_enclosure='\n'
+)
+```
+
+- To review optional parameters, see comments in the code.
 
 ### 4.6. Save model
 
-Blah
+- If `Model` instance has compiled dictionary, and if database location for the `Model` instance is not explicitly set to `':memory:'`, the data such instance is holding can be saved to disk:
+
+```python
+# Assuming m is pilsner.Model instance
+m.save('path/to/model_name')
+```
+
+- The snippet above will write the following files:
+  - `path/to/model_name.attributes`: database with attributes (fields from the dictionary that are not synonyms);
+  - `path/to/model_name.keywords`: keywords used for disambiguation;
+  - `path/to/model_name.normalizers`: string normalization units;
+  - `path/to/model_name.0.dictionary`: trie with synonyms;
+  - `path/to/model_name.<N>.dictionary`: additional tries with synonyms (`<N>` being integer number of a trie) in case more than one trie was created (see comments in the code - `pilsner.Utility.compile_model` method, `item_limit` parameter).
 
 ### 4.7. Load model
 
-Blah
+- To initialize new `Model` instance using previously saved data:
+
+```python
+m = pilsner.Model(filename='path/to/model_name')
+```
+
+- Alternatively, data can be loaded to previously initialized `Model` instance:
+
+```python
+m = pilsner.Model()
+m.load('path/to/model_name')
+```
+
+- In both cases, the program will look for the following files:
+  - `path/to/model_name.attributes`: database with attributes (fields from the dictionary that are not synonyms);
+  - `path/to/model_name.keywords`: keywords used for disambiguation;
+  - `path/to/model_name.normalizers`: string normalization units;
+  - `path/to/model_name.<N>.dictionary`: tries with synonyms (`<N>` being integer).
 
 ### 4.8. Parse string
 
-Blah
+- To parse a string without filtering out any synonyms and output all attributes of spotted entities:
+
+```python
+# Assuming m is pilsner.Model instance, r is pilsner.Utility instance, and text_to_parse is string to parse
+parsed = r.parse(
+    model=m,
+    source_string=text_to_parse
+)
+```
+
+- The output will be dict object where keys are tuples for location of spotted entity in a string (begin, end) and values are dicts for attributes that are associated with identified entity (`{'attribute_name': {attribute_values}}`).
+- For details about optional parameters, see comments in the code - `pilsner.Utility.parse` function).
+
 
 ## 5. Example
 
-Blah
+Everything written above is put together in example code, see **/misc/example/** directory in the project's repository.
