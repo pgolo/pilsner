@@ -28,7 +28,7 @@ def save_it():
     ]
     specs = r.compile_dict_specs(fields)
     _messages.clear()
-    r.compile_model(m, 'test/assets/sample_dictionary.txt', specs, ' ', '\t', '\n', item_limit=3, include_keywords=True)
+    r.compile_model(m, 'test/assets/sample_dictionary.txt', fields, ' ', '\t', '\n', item_limit=3, include_keywords=True)
     print(m['~keywords'])
     #s = 'this is awwsome white refrigerator o refrigerator, is it tors not conflicting refrigerator hey'
     s = 'this is awwsome white refrigerator , and it is awesome white refrigerator'

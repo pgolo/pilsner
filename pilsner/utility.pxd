@@ -118,6 +118,7 @@ cdef class Utility():
     )
 
     @cython.locals(
+        specs=cython.dict,
         tries=cython.list,
         line_numbers=cython.dict,
         keywords=cython.dict
@@ -126,7 +127,7 @@ cdef class Utility():
         self,
         model,
         str filename,
-        dict specs,
+        list fields,
         str word_separator,
         str column_separator,
         str column_enclosure,

@@ -58,14 +58,11 @@ fields = [
     }
 ]
 
-# Convert table definition into internally used `specs` structure
-specs = r.compile_dict_specs(fields)
-
 # Populate Model instance with data from misc/example/living_things.txt file
 r.compile_model(
     model=m,
     filename='misc/example/living_things.txt',
-    specs=specs,
+    fields=fields,
     word_separator=' ',
     column_separator='\t',
     column_enclosure='\n',

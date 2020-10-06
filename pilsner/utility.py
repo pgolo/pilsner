@@ -239,13 +239,13 @@ class Utility():
         self.logger('Done compiling keywords.')
         return keywords
 
-    def compile_model(self, model, filename, specs, word_separator, column_separator, column_enclosure, compressed=True, item_limit=0, tokenizer_option=0, include_keywords=False, disambiguate_all=False):
+    def compile_model(self, model, filename, fields, word_separator, column_separator, column_enclosure, compressed=True, item_limit=0, tokenizer_option=0, include_keywords=False, disambiguate_all=False):
         """Populates given Model instance with tries and keywords.
 
         Args:
             Model *model*: Model instance to populate
             str *filename*: path and name of tab-delimited text file with the content
-            dict *specs*: specifications for columns in the text file
+            list *fields*: list of dict objects defining the columns in the text file
             str *word_separator*: string considered to be the word delimiter
             str *column_separator*: delimiter to split columns
             str *column_enclosure*: any string that columns are supposed to be trimmed of
@@ -254,7 +254,20 @@ class Utility():
             int *tokenizer_option*: tokenizer mode (see documentation for normalization for details)
             bool *include_keywords*: whether generate keywords at all or not
             bool *disambiguate_all*: whether generate keywords for all entities or only for those having conflicting synonyms
+
+        Data structure for *fields* argument (also see compile_dict_specs() function):
+            [
+                {
+                    'name': 'str name of attribute',
+                    'include': bool True for including this column else False,
+                    'delimiter': 'str delimiter in case column stores concatenated lists',
+                    'id_flag': bool True if column stores entity ID else False,
+                    'normalizer_flag': bool True if column stores string normalizer tag else False,
+                    'value_flag': bool True if column stores string label to recognize else False
+                }
+            ]
         """
+        specs = self.compile_dict_specs(fields)
         tries, line_numbers = self.make_recognizer(model, filename, specs, word_separator, item_limit, compressed, column_separator, column_enclosure, tokenizer_option)
         keywords = {model.CONTENT_KEY: {}, model.INTERNAL_ID_KEY: {}}
         if include_keywords:
@@ -356,7 +369,7 @@ class Utility():
             int *progress_from*: initial progress value to report
             int *progress_to*: maximum progress value to report
 
-        Data structure for returbed value:
+        Data structure for returned value:
             [
                 (
                     [int internal_ids],

@@ -147,10 +147,9 @@ fields = [
     {'name': 'label_attr', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False},
     {'name': 'entity_attr', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
 ]
-specs = utility.compile_dict_specs(fields)
 """ % (x),
                     stmt="""
-utility.compile_model(model, '.test-dict.txt', specs, ' ', '\\t', '\\n', include_keywords=True)
+utility.compile_model(model, '.test-dict.txt', fields, ' ', '\\t', '\\n', include_keywords=True)
 model.destroy()
 """,
                     number=n
@@ -173,8 +172,7 @@ fields = [
     {'name': 'label_attr', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False},
     {'name': 'entity_attr', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
 ]
-specs = utility.compile_dict_specs(fields)
-utility.compile_model(model, '.test-dict.txt', specs, ' ', '\\t', '\\n', include_keywords=True)
+utility.compile_model(model, '.test-dict.txt', fields, ' ', '\\t', '\\n', include_keywords=True)
 """ % (x),
                     stmt="""
 model.save('.test-model')

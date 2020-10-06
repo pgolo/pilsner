@@ -19,7 +19,6 @@ class TestUtility(unittest.TestCase):
             {'name': 'label', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': True},
             {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
         ]
-        specs = self.utility.compile_dict_specs(fields)
         model = self.model
         model.add_normalizer('t1', 'test/assets/tokenizer1.xml')
         model.add_normalizer('t2', 'test/assets/tokenizer2.xml')
@@ -27,7 +26,7 @@ class TestUtility(unittest.TestCase):
             'tokenizer1': 't1',
             'tokenizer2': 't2'
         }
-        compiled = self.utility.compile_model(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', column_separator='\t', column_enclosure='', include_keywords=True)
+        compiled = self.utility.compile_model(model=model, filename='test/assets/sample_dictionary.txt', fields=fields, word_separator=' ', column_separator='\t', column_enclosure='', include_keywords=True)
         return compiled, model
 
     def test_init(self):
