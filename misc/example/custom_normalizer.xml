@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tokenizer name="custom">
+  <setting name="cs" value="0" />
+  <token to="lilies" from="lily" />
+</tokenizer>

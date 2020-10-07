@@ -4,11 +4,11 @@ import unittest
 class TestUtility(unittest.TestCase):
 
     def setUp(self):
-        self.recognizer = pilsner.Recognizer()
+        self.utility = pilsner.Utility()
         self.model = pilsner.Model()
 
     def tearDown(self):
-        del(self.recognizer)
+        del(self.utility)
         self.model.destroy()
         del(self.model)
 
@@ -19,7 +19,6 @@ class TestUtility(unittest.TestCase):
             {'name': 'label', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': True},
             {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
         ]
-        specs = self.recognizer.compile_dict_specs(fields)
         model = self.model
         model.add_normalizer('t1', 'test/assets/tokenizer1.xml')
         model.add_normalizer('t2', 'test/assets/tokenizer2.xml')
@@ -27,25 +26,25 @@ class TestUtility(unittest.TestCase):
             'tokenizer1': 't1',
             'tokenizer2': 't2'
         }
-        compiled = self.recognizer.compile_model(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', column_separator='\t', column_enclosure='', include_keywords=True)
+        compiled = self.utility.compile_model(model=model, filename='test/assets/sample_dictionary.txt', fields=fields, word_separator=' ', column_separator='\t', column_enclosure='', include_keywords=True)
         return compiled, model
 
     def test_init(self):
-        r = pilsner.Recognizer()
-        assert 'r' in locals(), 'Instance of Recognizer class has not been created'
-        assert type(r) == pilsner.Recognizer, 'Utility is supposed to have pilsner.Recognizer type, but has %s instead' % (str(type(r)))
+        r = pilsner.Utility()
+        assert 'r' in locals(), 'Instance of Utility class has not been created'
+        assert type(r) == pilsner.Utility, 'Utility is supposed to have pilsner.Utility type, but has %s instead' % (str(type(r)))
 
     def test_del(self):
-        r = pilsner.Recognizer()
+        r = pilsner.Utility()
         del(r)
-        assert 'r' not in locals(), 'Instance of Recognizer class has not been destroyed'
+        assert 'r' not in locals(), 'Instance of Utility class has not been destroyed'
 
     def test_push_message(self):
         messages = []
         def callback_function(message):
             messages.append(message)
-        self.recognizer.push_message('message 1', callback_function)
-        self.recognizer.push_message('message 2', callback_function)
+        self.utility.push_message('message 1', callback_function)
+        self.utility.push_message('message 2', callback_function)
         expected = ['message 1', 'message 2']
         assert messages == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(messages))
 
@@ -57,7 +56,7 @@ class TestUtility(unittest.TestCase):
             {'name': 'column 4', 'include': False, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': False},
             {'name': 'column 5', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
         ]
-        specs = self.recognizer.compile_dict_specs(fields)
+        specs = self.utility.compile_dict_specs(fields)
         expected = {
             'fields': {
                 'column 1': (0, None, True, False),
@@ -78,19 +77,19 @@ class TestUtility(unittest.TestCase):
             {'name': 'label', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': True},
             {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
         ]
-        specs = self.recognizer.compile_dict_specs(fields)
+        specs = self.utility.compile_dict_specs(fields)
         model = self.model
         model.create_recognizer_schema(model.cursor)
         test_trie = {}
-        self.recognizer.insert_node(label='the synonym', label_id=1, entity_id=10, subtrie=test_trie, specs=specs, columns=['', '', '', ''], model=model)
-        self.recognizer.insert_node('the synthesis', 2, 20, test_trie, specs, ['', '', '', ''], model)
+        self.utility.insert_node(label='the synonym', label_id=1, entity_id=10, subtrie=test_trie, specs=specs, columns=['', '', '', ''], model=model)
+        self.utility.insert_node('the synthesis', 2, 20, test_trie, specs, ['', '', '', ''], model)
         expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {'~i': [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {'~i': [2]}}}}}}}}}}}}}}
         assert test_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(test_trie))
 
     def test_remove_node(self):
         test_trie = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {'~i': [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {'~i': [1]}}}}}}}}}}}}}}
         model = self.model
-        self.recognizer.remove_node(model=model, label='the synonym', subtrie=test_trie)
+        self.utility.remove_node(model=model, label='the synonym', subtrie=test_trie)
         expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'t': {'h': {'e': {'s': {'i': {'s': {'~i': [1]}}}}}}}}}}}}}}
         assert test_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(test_trie))
 
@@ -101,9 +100,9 @@ class TestUtility(unittest.TestCase):
             {'name': 'label', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': True},
             {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
         ]
-        specs = self.recognizer.compile_dict_specs(fields)
+        specs = self.utility.compile_dict_specs(fields)
         model = self.model
-        got_recognizer, got_line_numbers = self.recognizer.make_recognizer(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', item_limit=0, compressed=True, column_separator='\t', column_enclosure='', tokenizer_option=0)
+        got_recognizer, got_line_numbers = self.utility.make_recognizer(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', item_limit=0, compressed=True, column_separator='\t', column_enclosure='', tokenizer_option=0)
         expected_recognizer = [
             {
                 model.SPECS_KEY: {
@@ -146,10 +145,10 @@ class TestUtility(unittest.TestCase):
             {'name': 'label', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': True},
             {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
         ]
-        specs = self.recognizer.compile_dict_specs(fields)
+        specs = self.utility.compile_dict_specs(fields)
         model = self.model
-        _, got_line_numbers = self.recognizer.make_recognizer(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', item_limit=0, compressed=True, column_separator='\t', column_enclosure='', tokenizer_option=0)
-        keywords = self.recognizer.make_keywords(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, line_numbers=got_line_numbers, word_separator=' ', disambiguate_all=False, column_separator='\t', column_enclosure='', tokenizer_option=0)
+        _, got_line_numbers = self.utility.make_recognizer(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, word_separator=' ', item_limit=0, compressed=True, column_separator='\t', column_enclosure='', tokenizer_option=0)
+        keywords = self.utility.make_keywords(model=model, filename='test/assets/sample_dictionary.txt', specs=specs, line_numbers=got_line_numbers, word_separator=' ', disambiguate_all=False, column_separator='\t', column_enclosure='', tokenizer_option=0)
         expected = {
             model.CONTENT_KEY: {
                 0: {'it', 'refrigeratorx', 'white', 'awesome', 'refrigerator', 'conflicting', 'refrigerators'},
@@ -171,7 +170,7 @@ class TestUtility(unittest.TestCase):
 
     def test_compile_model(self):
         compiled, model = self.compile_test_model()
-        assert compiled == True, 'pilsner.Recognizer.compile_model() returned False which is not expected'
+        assert compiled == True, 'pilsner.Utility.compile_model() returned False which is not expected'
         assert model.NORMALIZER_KEY in model, 'Model does not have model.NORMALIZER_KEY which is not expected'
         assert model.DEFAULT_NORMALIZER_KEY in model, 'Model does not have model.DEFAULT_NORMALIZER_KEY which is not expected'
         assert model.DICTIONARY_KEY in model, 'Model does not have model.DICTIONARY_KEY which is not expected'
@@ -208,7 +207,7 @@ class TestUtility(unittest.TestCase):
         _, model = self.compile_test_model()
         packed_trie = {'wesome white refrigera': {' ': {'tors': {model.ENTITY_KEY: [0]}}, 't': {'or': {'x': {model.ENTITY_KEY: [1]}, model.ENTITY_KEY: [4]}}}}
         expected = {'w': {'e': {'s': {'o': {'m': {'e': {' ': {'w': {'h': {'i': {'t': {'e': {' ': {'r': {'e': {'f': {'r': {'i': {'g': {'e': {'r': {'a': {' ': {'tors': {'~i': [0]}}, 't': {'or': {'x': {'~i': [1]}, '~i': [4]}}}}}}}}}}}}}}}}}}}}}}}}}
-        unpacked_trie = self.recognizer.unpack_trie(model=model, packed_trie=packed_trie, compressed=True)
+        unpacked_trie = self.utility.unpack_trie(model=model, packed_trie=packed_trie, compressed=True)
         assert unpacked_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(unpacked_trie))
 
     def test_unpack_attributes(self):
@@ -220,7 +219,7 @@ class TestUtility(unittest.TestCase):
         process_exclude = False
         attrs_out_query = ''
         expected = {8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer2'], 'some_attribute': ['A', 'B', 'C']}}
-        attributes = self.recognizer.unpack_attributes(cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query)
+        attributes = self.utility.unpack_attributes(cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query)
         assert attributes == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(attributes))
 
     def test_check_attrs(self):
@@ -232,7 +231,7 @@ class TestUtility(unittest.TestCase):
         process_exclude = False
         attrs_out_query = ''
         expected = {model.ENTITY_KEY: [8], model.ATTRS_KEY: {8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer2'], 'some_attribute': ['A', 'B', 'C']}}}
-        got_leaf = self.recognizer.check_attrs(model, trie_leaf, cur, include_query, exclude_query, process_exclude, attrs_out_query)
+        got_leaf = self.utility.check_attrs(model, trie_leaf, cur, include_query, exclude_query, process_exclude, attrs_out_query)
         assert got_leaf == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(got_leaf))
 
     def test_spot_entities(self):
@@ -240,7 +239,7 @@ class TestUtility(unittest.TestCase):
         source_string = 'this is awesome white refrigerator , and this is not'
         normalizer_name = 't1'
         expected = [([4], {4: {'entity_id': ['entity1'], 'normalizer': ['tokenizer1'], 'some_attribute': ['A', 'B', 'C']}}, 'awesome white refrigerator', 8, 34)]
-        spotted = self.recognizer.spot_entities(model, source_string, normalizer_name)
+        spotted = self.utility.spot_entities(model, source_string, normalizer_name)
         assert spotted == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(spotted))
 
     def test_disambiguate(self):
@@ -283,7 +282,7 @@ class TestUtility(unittest.TestCase):
                 ]
             )
         ]
-        disambiguated = self.recognizer.disambiguate(model, spotted, srcs, word_separator)
+        disambiguated = self.utility.disambiguate(model, spotted, srcs, word_separator)
         assert disambiguated == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(disambiguated))
 
     def test_flatten_layers(self):
@@ -345,7 +344,7 @@ class TestUtility(unittest.TestCase):
                 46, 71
             )
         ]
-        flattened = self.recognizer.flatten_layers(model, layers)
+        flattened = self.utility.flatten_layers(model, layers)
         assert flattened == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(flattened))
 
     def test_flatten_spans(self):
@@ -371,13 +370,13 @@ class TestUtility(unittest.TestCase):
             (40, 42): {'DType': {'tokenizer2'}, 'MSID': {'entity1'}, 'smth': {'C', 'B', 'A'}},
             (46, 71): {'DType': {'tokenizer1'}, 'MSID': {'entity1'}, 'smth': {'C', 'B', 'A'}}
         }
-        flattened = self.recognizer.flatten_spans(spans)
+        flattened = self.utility.flatten_spans(spans)
         assert flattened == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(flattened))
 
     def test_reduce_spans(self):
         segments = set([tuple([1, 2]), tuple([3, 8]), tuple([1, 6]), tuple([2, 3])])
         expected = [tuple([1, 6])]
-        reduced = self.recognizer.reduce_spans(segments)
+        reduced = self.utility.reduce_spans(segments)
         assert reduced == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(reduced))
 
     def test_parse(self):
@@ -389,7 +388,7 @@ class TestUtility(unittest.TestCase):
             (54, 56): {'entity_id': {'entity2'}, 'normalizer': {'tokenizer2'}, 'some_attribute': {'C', 'B', 'A'}},
             (66, 90): {'entity_id': {'entity2'}, 'normalizer': {'tokenizer2'}, 'some_attribute': {'D', 'E'}}
         }
-        output = self.recognizer.parse(model, source_string)
+        output = self.utility.parse(model, source_string)
         assert output == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(output))
 
 if __name__ == '__main__':

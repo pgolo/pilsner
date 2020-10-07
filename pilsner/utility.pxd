@@ -1,6 +1,6 @@
 import cython
 
-cdef class Recognizer():
+cdef class Utility():
 
     cdef public bint debug
     cdef public bint verbose
@@ -118,6 +118,7 @@ cdef class Recognizer():
     )
 
     @cython.locals(
+        specs=cython.dict,
         tries=cython.list,
         line_numbers=cython.dict,
         keywords=cython.dict
@@ -126,7 +127,7 @@ cdef class Recognizer():
         self,
         model,
         str filename,
-        dict specs,
+        list fields,
         str word_separator,
         str column_separator,
         str column_enclosure,

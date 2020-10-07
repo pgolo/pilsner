@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tokenizer name="default">
+  <setting name="cs" value="0" />
+  <split where="r" value="rerio" />
+  <token to="" from="scary" />
+</tokenizer>
