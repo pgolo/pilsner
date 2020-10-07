@@ -10,8 +10,8 @@ import pilsner
 m = pilsner.Model()
 
 # Add normalization units
-#m.add_normalizer('default', 'misc/example/default_normalizer.xml')
-#m.add_normalizer('custom', 'misc/example/custom_normalizer.xml')
+m.add_normalizer('default', 'misc/example/default_normalizer.xml')
+m.add_normalizer('custom', 'misc/example/custom_normalizer.xml')
 
 # Map names of normalization units to some string values
 m.normalizer_map = {
@@ -76,15 +76,18 @@ m.save('misc/example/living_things')
 m = pilsner.Model('misc/example/living_things')
 
 # Parse string
-text_to_parse = 'sample text here a b c d c b a'
+text_to_parse = '''
+Little mouse is not recognized and is not frightened by big scary eagle.
+Daniorerio also does not care much about water lilies, though both are recognized.
+'''
 parsed = r.parse(
     model=m,
     source_string=text_to_parse,
     attrs_where={
-        '+': {'habitat': {'air', 'ocean'}}
+        '+': {'habitat': {'air', 'ocean'}} # only consider items with these values in 'habitat' column
     },
-    attrs_out=['id', 'type', 'habitat']
+    attrs_out=['id', 'type', 'habitat'] # for each spotted entity, output 'id', 'type', and 'habitat' attributes
 )
 
-# Print out the result
+# Print out the result: recognized are 'big eagle', 'danio rerio', 'water lily'.
 print(parsed)
