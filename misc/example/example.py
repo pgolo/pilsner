@@ -86,7 +86,7 @@ parsed = r.parse(
     attrs_where={
         '+': {'habitat': {'air', 'ocean'}} # only consider items with these values in 'habitat' column
     },
-    attrs_out=['id', 'type', 'habitat'] # for each spotted entity, output 'id', 'type', and 'habitat' attributes
+    attrs_out=['type'] # for each spotted entity, only output 'type' attribute
 )
 
 # Print out the result: recognized are 'big eagle', 'danio rerio', 'water lily'.
