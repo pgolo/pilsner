@@ -7,7 +7,6 @@ RUNDIR=`pwd`
 cd `dirname $0`
 MYDIR=`pwd`
 ROOT=${MYDIR}/../..
-REQUIREMENTS=${ROOT}/requirements.txt
 ENV=${ROOT}/.env.build
 SHIPPING=${ROOT}/shipping
 

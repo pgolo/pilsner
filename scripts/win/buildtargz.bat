@@ -17,6 +17,7 @@ virtualenv -p "%1" "%ENV%"
 "%ENV%"\Scripts\python "%SHIPPING%"\make_setup.py sdist
 "%ENV%"\Scripts\python "%ROOT%"\setup.py sdist
 rmdir /S /Q "%ENV%"
+rmdir /S /Q "%ROOT%"\pilsner.egg-info
 
 del /Q "%ROOT%"\setup.py
 

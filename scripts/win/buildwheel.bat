@@ -7,7 +7,7 @@ rem The package will be placed in dist\ directory.
 set RUNDIR=%cd%
 set MYDIR=%~dp0
 set ROOT=%MYDIR%\..\..
-set REQUIREMENTS=%ROOT%\requirements.txt
+set REQUIREMENTS=%ROOT%\requirements-build.txt
 set ENV=%ROOT%\.env.build
 set SHIPPING=%ROOT%\shipping
 
