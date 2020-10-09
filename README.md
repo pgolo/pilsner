@@ -34,7 +34,7 @@ class provides storage for the dictionary and string normalization rules, as
 well as low-level methods for populating this storage. `Utility` class provides
 high-level methods for storing and retrieving data to/from `Model` instance.
 
-![Diagram](misc/pilsner-diagram.svg)
+![Diagram](https://github.com/pgolo/pilsner/blob/master/misc/pilsner-diagram.svg)
 
 ## 4. Usage
 
