@@ -2,7 +2,8 @@
 **/__pycache__/*
 build/*
 cythonized/*
-dist/*
+bin/*
 *.spec
+pilsner.egg-info/*
 !**/.gitkeep
 !**/.gitignore

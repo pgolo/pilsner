@@ -1,0 +1,4 @@
+animal	1	little mouse	ground
+animal	2	big eagle	air
+animal	3	danio rerio	ocean
+plant	4	water lily	ocean

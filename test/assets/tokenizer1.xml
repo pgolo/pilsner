@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tokenizer name="t1">
+  <setting name="cs" value="0" />
+  <split where="lmr" value="tors" />
+</tokenizer>
