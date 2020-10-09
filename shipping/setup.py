@@ -9,7 +9,7 @@ with open('README.md', mode='r', encoding='utf8') as f:
 
 setup(
     name='pilsner',
-    version='X.X.X',
+    version='0.0.1',
     description='Utility for dictionary-based named entity recognition',
     long_description=long_description,
     long_description_content_type='text/markdown',
