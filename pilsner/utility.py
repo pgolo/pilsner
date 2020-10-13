@@ -30,6 +30,14 @@ class Utility():
         """Destructor."""
         pass
 
+    def __enter__(self):
+        """Enter `with`."""
+        return self
+
+    def __exit__(self, ex_type, ex_value, ex_traceback):
+        """Exit `with`."""
+        pass
+
     def push_message(self, message, callback_function):
         """Passes message to callback_function.
 
