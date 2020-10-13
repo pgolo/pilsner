@@ -72,6 +72,13 @@ class Model(dict):
         except:
             pass
 
+    def __enter__(self):
+        print('enter')
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print('exit')
+
     def save(self, filename):
         """Saves model to disk.
         Note: this will throw exception if temporary database is stored in memory.
