@@ -73,11 +73,12 @@ class Model(dict):
             pass
 
     def __enter__(self):
-        print('enter')
+        """Enter `with`."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        print('exit')
+    def __exit__(self, ex_type, ex_value, ex_traceback):
+        """Exit `with`."""
+        self.destroy()
 
     def save(self, filename):
         """Saves model to disk.
