@@ -72,6 +72,14 @@ class Model(dict):
         except:
             pass
 
+    def __enter__(self):
+        """Enter `with`."""
+        return self
+
+    def __exit__(self, ex_type, ex_value, ex_traceback):
+        """Exit `with`."""
+        self.destroy()
+
     def save(self, filename):
         """Saves model to disk.
         Note: this will throw exception if temporary database is stored in memory.
