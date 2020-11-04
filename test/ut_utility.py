@@ -391,9 +391,18 @@ class TestUtility(unittest.TestCase):
         output = self.utility.parse(model, source_string)
         assert output == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(output))
 
+    def test_ignore_node(self):
+        _, model = self.compile_test_model()
+        self.utility.ignore_node(model, 'awesome white refrigerator')
+
 if __name__ == '__main__':
     sys.path.insert(0, '')
     import pilsner # pylint: disable=E0611,F0401
+    x = TestUtility()
+    x.setUp()
+    x.test_ignore_node()
+    x.tearDown()
+    """
     unittest.main(exit=False)
     try:
         import bin as pilsner # pylint: disable=E0611,F0401
@@ -404,3 +413,4 @@ if __name__ == '__main__':
         # x.tearDown()
     except ModuleNotFoundError:
         print('Could not import module from /bin, test skipped.')
+    """

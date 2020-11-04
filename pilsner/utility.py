@@ -125,6 +125,35 @@ class Utility():
             del subtrie[model.ENTITY_KEY]
             return len(subtrie) + 1, True
 
+    def ignore_node(self, model, label):
+        """Looks up *label* in a given *model* and hooks a special tag to the leaf in case *label* is found.
+        Tagged label will not be racognized by Utility.spot_entities() function.
+
+        Args:
+            Model *model*: Model instance to look up
+            str *label*: string to tag
+        """
+        # TODO:
+        # store ~IGNORE key in the Model
+        # adjust spot_entities() function to ignore tagged leaves
+        # adjust pxd
+        # add unit test
+        label_length = len(label)
+        string_so_far = ''
+        for section in model[model.DICTIONARY_KEY]:
+            content = section[model.CONTENT_KEY]
+            for tokenizer_key in content:
+                trie = content[tokenizer_key]
+                for character_index in range(0, label_length):
+                    character = label[character_index]
+                    string_so_far += character
+                    if string_so_far in trie:
+                        trie = trie[string_so_far]
+                        string_so_far = ''
+                if character_index == label_length - 1 and model.ENTITY_KEY in trie:
+                    # store key in the Model
+                    trie['~IGNORE'] = []
+
     def make_recognizer(self, model, filename, specs, word_separator, item_limit, compressed, column_separator, column_enclosure, tokenizer_option):
         """Reads tab-delimited text file, populates dict objects representing tries, and fills database associated with a given Model instance according to provided specs.
         Returns tuple(list *tries*, dict *line_numbers*) where *tries* are populated dicts representing tries, *line_numbers* is dict that maps line numbers from the text file to internally generated entity IDs.
