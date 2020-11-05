@@ -253,6 +253,19 @@ parsed = r.parse(
 - The output will be dict object where keys are tuples for location of spotted
 entity in a string (begin, end) and values are dicts for attributes that are
 associated with identified entity (`{'attribute_name': {attribute_values}}`).
+- To ignore entity by its label rather than some of its attributes, compiled
+model can be adjusted using `pilsnet.Utility.ignore_node()` method:
+
+```python
+# Assuming m is pilsner.Model instance, r is pilsner.Utility instance
+r.ignore_node(
+  model=m,
+  label='irrelevant substring'
+)
+# substring 'irrelevant substring' will not be found by pilsner.Utility.parse()
+# even if it is present in the model
+```
+
 - For details about optional parameters, see comments in the code -
 `pilsner.Utility.parse` function).
 
