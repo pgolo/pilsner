@@ -54,6 +54,21 @@ cdef class Utility():
     )
 
     @cython.locals(
+        label_length=cython.int,
+        string_so_far=cython.str,
+        section=cython.dict,
+        content=cython.dict,
+        tokenizer_key=cython.str,
+        trie=cython.dict,
+        character_index=cython.int
+    )
+    cpdef ignore_node(
+        self,
+        model,
+        str label
+    )
+
+    @cython.locals(
         entity_ids=cython.dict,
         line_numbers=cython.dict,
         total_bytes=cython.int,

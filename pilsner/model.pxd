@@ -7,6 +7,7 @@ cdef class Model(dict):
     cdef public str COMPRESSED_KEY
     cdef public str TOKENIZER_OPTION_KEY
     cdef public str WORD_SEPARATOR_KEY
+    cdef public str IGNORE_KEY
     cdef public str ENTITY_KEY
     cdef public str ATTRS_KEY
     cdef public str INTERNAL_ID_KEY

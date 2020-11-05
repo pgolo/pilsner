@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Context manager support for Model and Utility classes
+- pilsner.Utility.ignore_node() method to arbitrary ignore labels present in the model
 
 ### Removed
 
