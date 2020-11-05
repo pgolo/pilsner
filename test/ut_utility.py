@@ -393,24 +393,21 @@ class TestUtility(unittest.TestCase):
 
     def test_ignore_node(self):
         _, model = self.compile_test_model()
+        source_string = 'this is awesome white refrigerator hey hey'
+        recognized_normally = self.utility.parse(model, source_string)
+        expected_normally = {(8, 34): {'entity_id': {'entity1'}, 'normalizer': {'tokenizer1'}, 'some_attribute': {'C', 'A', 'B'}}}
         self.utility.ignore_node(model, 'awesome white refrigerator')
+        recognized_after_exclusion = self.utility.parse(model, source_string)
+        expected_after_exclusion = {}
+        assert recognized_normally == expected_normally, '\nExpected\n%s\nGot\n%s' % (str(expected_normally), str(recognized_normally))
+        assert recognized_after_exclusion == expected_after_exclusion, '\nExpected\n%s\nGot\n%s' % (str(expected_after_exclusion), str(recognized_after_exclusion))
 
 if __name__ == '__main__':
     sys.path.insert(0, '')
     import pilsner # pylint: disable=E0611,F0401
-    x = TestUtility()
-    x.setUp()
-    x.test_ignore_node()
-    x.tearDown()
-    """
     unittest.main(exit=False)
     try:
         import bin as pilsner # pylint: disable=E0611,F0401
         unittest.main()
-        # x = TestUtility()
-        # x.setUp()
-        # x.compile_test_model()
-        # x.tearDown()
     except ModuleNotFoundError:
         print('Could not import module from /bin, test skipped.')
-    """
