@@ -267,7 +267,7 @@ r.ignore_node(
 ```
 
 - For details about optional parameters, see comments in the code -
-`pilsner.Utility.parse` function).
+`pilsner.Utility.parse()` function.
 
 ## 5. Example
 
