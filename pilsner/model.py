@@ -22,6 +22,7 @@ class Model(dict):
         self.COMPRESSED_KEY = '~compressed'
         self.TOKENIZER_OPTION_KEY = '~tokenizer_option'
         self.WORD_SEPARATOR_KEY = '~word_separator'
+        self.IGNORE_KEY = '~x'
         self.ENTITY_KEY = '~i'
         self.ATTRS_KEY = '~p'
         self.INTERNAL_ID_KEY = '~iid'
