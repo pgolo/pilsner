@@ -83,14 +83,14 @@ class TestUtility(unittest.TestCase):
         test_trie = {}
         self.utility.insert_node(label='the synonym', label_id=1, entity_id=10, subtrie=test_trie, specs=specs, columns=['', '', '', ''], model=model)
         self.utility.insert_node('the synthesis', 2, 20, test_trie, specs, ['', '', '', ''], model)
-        expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {'~i': [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {'~i': [2]}}}}}}}}}}}}}}
+        expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {model.ENTITY_KEY: [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {model.ENTITY_KEY: [2]}}}}}}}}}}}}}}
         assert test_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(test_trie))
 
     def test_remove_node(self):
-        test_trie = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {'~i': [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {'~i': [1]}}}}}}}}}}}}}}
         model = self.model
+        test_trie = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {model.ENTITY_KEY: [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {model.ENTITY_KEY: [1]}}}}}}}}}}}}}}
         self.utility.remove_node(model=model, label='the synonym', subtrie=test_trie)
-        expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'t': {'h': {'e': {'s': {'i': {'s': {'~i': [1]}}}}}}}}}}}}}}
+        expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'t': {'h': {'e': {'s': {'i': {'s': {model.ENTITY_KEY: [1]}}}}}}}}}}}}}}
         assert test_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(test_trie))
 
     def test_make_recognizer(self):
@@ -196,7 +196,7 @@ class TestUtility(unittest.TestCase):
                 model.COMPRESSED_KEY: 1,
                 model.TOKENIZER_OPTION_KEY: 0,
                 model.WORD_SEPARATOR_KEY: ' ',
-                model.CONTENT_KEY: {'t1': {'a': {'wesome white refrigera': {' ': {'tors': {'~i': [0]}}, 't': {'or': {'x': {'~i': [1]}, '~i': [4]}}}}}, 't2': {'c': {'onflicting refrigerator': {'~i': [2, 8]}}, 'a': {'w': {'e': {'some refrigerators': {'~i': [3]}}, 'w': {'some refrigerator': {'~i': [5]}}}}, 'i': {'t': {'~i': [6]}}, 'o': {'~i': [7]}}}
+                model.CONTENT_KEY: {'t1': {'a': {'wesome white refrigera': {' ': {'tors': {model.ENTITY_KEY: [0]}}, 't': {'or': {'x': {model.ENTITY_KEY: [1]}, model.ENTITY_KEY: [4]}}}}}, 't2': {'c': {'onflicting refrigerator': {model.ENTITY_KEY: [2, 8]}}, 'a': {'w': {'e': {'some refrigerators': {model.ENTITY_KEY: [3]}}, 'w': {'some refrigerator': {model.ENTITY_KEY: [5]}}}}, 'i': {'t': {model.ENTITY_KEY: [6]}}, 'o': {model.ENTITY_KEY: [7]}}}
             }
         ]
         expected_keywords = {model.CONTENT_KEY: {0: {'refrigerator', 'tors', 'it', 'refrigera', 'white', 'conflicting', 'awesome', 'refrigeratorx'}, 1: {'refrigerator', 'refrigerators', 'white', 'o', 'conflicting', 'awwsome', 'awesome'}}, model.INTERNAL_ID_KEY: {0: 0, 1: 0, 2: 0, 3: 1, 4: 1, 5: 1, 6: 0, 7: 1, 8: 1}}
@@ -206,7 +206,7 @@ class TestUtility(unittest.TestCase):
     def test_unpack_trie(self):
         _, model = self.compile_test_model()
         packed_trie = {'wesome white refrigera': {' ': {'tors': {model.ENTITY_KEY: [0]}}, 't': {'or': {'x': {model.ENTITY_KEY: [1]}, model.ENTITY_KEY: [4]}}}}
-        expected = {'w': {'e': {'s': {'o': {'m': {'e': {' ': {'w': {'h': {'i': {'t': {'e': {' ': {'r': {'e': {'f': {'r': {'i': {'g': {'e': {'r': {'a': {' ': {'tors': {'~i': [0]}}, 't': {'or': {'x': {'~i': [1]}, '~i': [4]}}}}}}}}}}}}}}}}}}}}}}}}}
+        expected = {'w': {'e': {'s': {'o': {'m': {'e': {' ': {'w': {'h': {'i': {'t': {'e': {' ': {'r': {'e': {'f': {'r': {'i': {'g': {'e': {'r': {'a': {' ': {'tors': {model.ENTITY_KEY: [0]}}, 't': {'or': {'x': {model.ENTITY_KEY: [1]}, model.ENTITY_KEY: [4]}}}}}}}}}}}}}}}}}}}}}}}}}
         unpacked_trie = self.utility.unpack_trie(model=model, packed_trie=packed_trie, compressed=True)
         assert unpacked_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(unpacked_trie))
 
