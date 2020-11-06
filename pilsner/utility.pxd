@@ -186,6 +186,9 @@ cdef class Utility():
         str attrs_out_query
     )
 
+    @cython.locals(
+        this_trie_leaf=cython.dict
+    )
     cpdef dict check_attrs(
         self,
         model,

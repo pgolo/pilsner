@@ -380,10 +380,11 @@ class Utility():
             bint *process_exclude*: whether use *exclude_query* at all
             str *attrs_out_query*: part of SQL query that specifies which attributes to eventually return
         """
-        trie_leaf[model.ATTRS_KEY] = self.unpack_attributes(cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
-        if int(len(trie_leaf[model.ATTRS_KEY])) == 0:
+        this_trie_leaf = dict(trie_leaf)
+        this_trie_leaf[model.ATTRS_KEY] = self.unpack_attributes(cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
+        if int(len(this_trie_leaf[model.ATTRS_KEY])) == 0:
             return {}
-        return trie_leaf
+        return this_trie_leaf
 
     def spot_entities(self, model, source_string, normalizer_name, include_query='', exclude_query='', process_exclude=False, attrs_out_query='', progress_from=0, progress_to=100):
         """Zooms through a string, finds boundaries of synonyms stored in model's trie, and pulls associated attributes from the storage.
