@@ -6,11 +6,14 @@ class TestUtility(unittest.TestCase):
     def setUp(self):
         self.utility = pilsner.Utility()
         self.model = pilsner.Model()
+        self.simple_model = pilsner.Model(simple=True)
 
     def tearDown(self):
         del(self.utility)
         self.model.destroy()
         del(self.model)
+        self.simple_model.destroy()
+        del(self.simple_model)
 
     def compile_test_model(self):
         fields = [
@@ -20,6 +23,23 @@ class TestUtility(unittest.TestCase):
             {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
         ]
         model = self.model
+        model.add_normalizer('t1', 'test/assets/tokenizer1.xml')
+        model.add_normalizer('t2', 'test/assets/tokenizer2.xml')
+        model.normalizer_map = {
+            'tokenizer1': 't1',
+            'tokenizer2': 't2'
+        }
+        compiled = self.utility.compile_model(model=model, filename='test/assets/sample_dictionary.txt', fields=fields, word_separator=' ', column_separator='\t', column_enclosure='', include_keywords=True)
+        return compiled, model
+
+    def compile_test_simple_model(self):
+        fields = [
+            {'name': 'normalizer', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': True, 'value_flag': False},
+            {'name': 'entity_id', 'include': True, 'delimiter': None, 'id_flag': True, 'normalizer_flag': False, 'value_flag': False},
+            {'name': 'label', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': True},
+            {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
+        ]
+        model = self.simple_model
         model.add_normalizer('t1', 'test/assets/tokenizer1.xml')
         model.add_normalizer('t2', 'test/assets/tokenizer2.xml')
         model.normalizer_map = {
@@ -219,7 +239,7 @@ class TestUtility(unittest.TestCase):
         process_exclude = False
         attrs_out_query = ''
         expected = {8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer2'], 'some_attribute': ['A', 'B', 'C']}}
-        attributes = self.utility.unpack_attributes(cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query)
+        attributes = self.utility.unpack_attributes(model, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query)
         assert attributes == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(attributes))
 
     def test_check_attrs(self):
@@ -401,6 +421,13 @@ class TestUtility(unittest.TestCase):
         expected_after_exclusion = {}
         assert recognized_normally == expected_normally, '\nExpected\n%s\nGot\n%s' % (str(expected_normally), str(recognized_normally))
         assert recognized_after_exclusion == expected_after_exclusion, '\nExpected\n%s\nGot\n%s' % (str(expected_after_exclusion), str(recognized_after_exclusion))
+
+    def test_simple_model(self):
+        _, model = self.compile_test_simple_model()
+        source_string = 'this is awesome white refrigerator hey hey'
+        expected = {(8, 34): {'ID': {'entity1'}}}
+        parsed = self.utility.parse(model, source_string)
+        assert parsed == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(parsed))
 
 if __name__ == '__main__':
     sys.path.insert(0, '')
