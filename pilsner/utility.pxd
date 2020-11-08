@@ -178,6 +178,7 @@ cdef class Utility():
     )
     cpdef dict unpack_attributes(
         self,
+        model,
         cur,
         list lead_ids,
         str include_query,
