@@ -28,6 +28,7 @@ class Model(dict):
         self.IGNORE_KEY = '\x07' # BEL, formerly '~x'
         self.ENTITY_KEY = '\x03' # ETX, formerly '~i'
         self.ATTRS_KEY = '\x05' # ENQ, formerly '~p'
+        self.RESERVED_CHARACTERS = set([self.IGNORE_KEY, self.ENTITY_KEY, self.ATTRS_KEY])
         self.INTERNAL_ID_KEY = '~internal_id_map'
         self.DICTIONARY_KEY = '~dictionary'
         self.KEYWORDS_KEY = '~keywords'
@@ -195,6 +196,8 @@ class Model(dict):
         """
         logging.debug('Adding normalizer "%s" from "%s"' % (normalizer_name, filename))
         normalizer = self.sic_builder.build_normalizer(filename)
+        # TODO:
+        # wait for sic update to add reserved characters to the normalizer here
         self[self.NORMALIZER_KEY][normalizer_name] = normalizer
         self.normalizer_map[normalizer_name] = normalizer_name
         if len(self[self.NORMALIZER_KEY]) == 1 or default:
