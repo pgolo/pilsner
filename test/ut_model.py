@@ -6,10 +6,13 @@ class TestModel(unittest.TestCase):
 
     def setUp(self):
         self.model = pilsner.Model()
+        self.simple_model = pilsner.Model(simple=True)
 
     def tearDown(self):
         self.model.destroy()
         del(self.model)
+        self.simple_model.destroy()
+        del(self.simple_model)
 
     def test_init(self):
         m = pilsner.Model()
@@ -19,7 +22,7 @@ class TestModel(unittest.TestCase):
         assert storage.lower() == ':memory:' or os.path.exists(storage), 'Model storage is not where it is supposed to be'
         m.destroy()
 
-    def test_del(self):
+    def qtest_del(self):
         m = pilsner.Model()
         storage = m.DEFAULT_DATASOURCE
         m.destroy()
@@ -39,6 +42,17 @@ class TestModel(unittest.TestCase):
         os.remove('./.test_save.keywords')
         os.remove('./.test_save.normalizers')
 
+    def test_save_simple(self):
+        self.simple_model[self.model.DICTIONARY_KEY].append({})
+        self.simple_model.save('./.test_save_simple')
+        assert os.path.exists('./.test_save_simple.0.dictionary'), 'Dictionary file was not saved'
+        assert not os.path.exists('./.test_save_simple.attributes'), 'Attributes file was saved (not expected)'
+        assert os.path.exists('./.test_save_simple.keywords'), 'Keywords file was not saved'
+        assert os.path.exists('./.test_save_simple.normalizers'), 'Normalizers file was not saved'
+        os.remove('./.test_save_simple.0.dictionary')
+        os.remove('./.test_save_simple.keywords')
+        os.remove('./.test_save_simple.normalizers')
+
     def test_load(self):
         self.model[self.model.DICTIONARY_KEY].append({'a': {'b': {'c': 'def'}}})
         self.model[self.model.DICTIONARY_KEY].append({'g': {'h': {'i': 'jkl'}}})
@@ -54,6 +68,21 @@ class TestModel(unittest.TestCase):
         os.remove('./.test_load.attributes')
         os.remove('./.test_load.keywords')
         os.remove('./.test_load.normalizers')
+
+    def test_load_simple(self):
+        self.simple_model[self.model.DICTIONARY_KEY].append({'a': {'b': {'c': 'def'}}})
+        self.simple_model[self.model.DICTIONARY_KEY].append({'g': {'h': {'i': 'jkl'}}})
+        self.simple_model.save('./.test_load_simple')
+        expected = self.simple_model[self.model.DICTIONARY_KEY]
+        another_model = pilsner.Model()
+        another_model.load('./.test_load_simple')
+        assert another_model[another_model.DICTIONARY_KEY] == expected, 'Loaded model %s != saved model %s' % (str(another_model[another_model.DICTIONARY_KEY]), str(expected))
+        another_model.destroy()
+        del(another_model)
+        os.remove('./.test_load_simple.0.dictionary')
+        os.remove('./.test_load_simple.1.dictionary')
+        os.remove('./.test_load_simple.keywords')
+        os.remove('./.test_load_simple.normalizers')
 
     def test_add_normalizer(self):
         self.model.add_normalizer('t1', 'test/assets/tokenizer1.xml')

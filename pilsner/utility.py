@@ -172,10 +172,11 @@ class Utility():
         increment_bytes = int(total_bytes / 100) if total_bytes > 100 else total_bytes
         this_progress_position = 0
         last_progress_position = 0
-        rows = model.cursor.execute('select 0 where not exists (select name from sqlite_master where type = \'table\' and name = \'attrs\');')
-        for _ in rows:
-            model.create_recognizer_schema(model.cursor)
-            break
+        if model.connection is not None:
+            rows = model.cursor.execute('select 0 where not exists (select name from sqlite_master where type = \'table\' and name = \'attrs\');')
+            for _ in rows:
+                model.create_recognizer_schema(model.cursor)
+                break
         with open(filename, mode='r', encoding='utf8') as f:
             ret = []
             line_count = 0
@@ -204,8 +205,9 @@ class Utility():
             packed = model.pack_trie(trie, compressed)
             ret.append(packed)
             self.logger('Lines read: %d' % (line_count))
-        model.connection.commit()
-        model.cursor.execute('create index ix_attrs_n_attr_name_attr_value on attrs (n asc, attr_name asc, attr_value asc);')
+        if model.connection is not None:
+            model.connection.commit()
+            model.cursor.execute('create index ix_attrs_n_attr_name_attr_value on attrs (n asc, attr_name asc, attr_value asc);')
         self.logger('Recognizer completed.')
         return ret, line_numbers
 
@@ -332,7 +334,7 @@ class Utility():
         unpacked_trie_pointer[radix[-1:]] = packed_trie[radix]
         return unpacked_trie
 
-    def unpack_attributes(self, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
+    def unpack_attributes(self, model, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
         """Loads attributes for internal IDs found in a leaf of a trie from a model's database using associated sqlite3.connect.cursor object.
         Returns dict object that maps internal IDs with attributes.
 
@@ -345,6 +347,14 @@ class Utility():
             str *attrs_out_query*: part of SQL query that specifies which attributes to eventually return
         """
         attributes = {}
+        if cur is None:
+            for n in leaf_ids:
+                if n not in attributes:
+                    attributes[n] = {}
+                if 'ID' not in attributes[n]:
+                    attributes[n]['ID'] = []
+                attributes[n]['ID'].append(model[model.INTERNAL_ID_KEY][n])
+            return attributes
         include_attrs = set()
         exclude_attrs = set()
         for n in leaf_ids:
@@ -381,7 +391,7 @@ class Utility():
             str *attrs_out_query*: part of SQL query that specifies which attributes to eventually return
         """
         this_trie_leaf = dict(trie_leaf)
-        this_trie_leaf[model.ATTRS_KEY] = self.unpack_attributes(cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
+        this_trie_leaf[model.ATTRS_KEY] = self.unpack_attributes(model, cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
         if int(len(this_trie_leaf[model.ATTRS_KEY])) == 0:
             return {}
         return this_trie_leaf

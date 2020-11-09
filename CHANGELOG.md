@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Context manager support for Model and Utility classes
 - pilsner.Utility.ignore_node() method to arbitrary ignore labels present in the model
+- pilsner.Model instance created with `simple=True` parameter does not store attributes or otherwise interact with a database
 
 ### Removed
 
