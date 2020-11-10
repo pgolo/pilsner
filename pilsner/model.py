@@ -196,8 +196,14 @@ class Model(dict):
         """
         logging.debug('Adding normalizer "%s" from "%s"' % (normalizer_name, filename))
         normalizer = self.sic_builder.build_normalizer(filename)
-        # TODO:
-        # wait for sic update to add reserved characters to the normalizer here
+        normalizer.make_tokenizer(
+            ''.join([rule.decode() for rule in [
+                sic.ReplaceCharacter(self.IGNORE_KEY, ''),
+                sic.ReplaceCharacter(self.ENTITY_KEY, ''),
+                sic.ReplaceCharacter(self.ATTRS_KEY, '')]
+            ]),
+            update=True
+        )
         self[self.NORMALIZER_KEY][normalizer_name] = normalizer
         self.normalizer_map[normalizer_name] = normalizer_name
         if len(self[self.NORMALIZER_KEY]) == 1 or default:

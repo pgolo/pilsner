@@ -431,8 +431,8 @@ class TestUtility(unittest.TestCase):
 
     def test_simple_model_reserved_chars(self):
         _, model = self.compile_test_simple_model()
-        source_string = 'this is awe\x03some \x03 white refrigerator hey hey'
-        expected = {(8, 34): {'ID': {'entity1'}}}
+        source_string = 'this is awesome\x03 white refrigerator hey hey'
+        expected = {(8, 35): {'ID': {'entity1'}}}
         parsed = self.utility.parse(model, source_string)
         assert parsed == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(parsed))
 
