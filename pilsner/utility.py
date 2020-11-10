@@ -133,7 +133,7 @@ class Utility():
             Model *model*: Model instance to look up
             str *label*: string to tag
         """
-        label_length = len(label)
+        label_length = int(len(label))
         string_so_far = ''
         character_index = 0
         for section in model[model.DICTIONARY_KEY]:
@@ -429,7 +429,7 @@ class Utility():
         rets = []
         this_progress_position = 0
         last_progress_position = 0
-        total_tries = len(model[model.DICTIONARY_KEY])
+        total_tries = int(len(model[model.DICTIONARY_KEY]))
         if total_tries == 0:
             return rets
         progress_share = progress_to - progress_from
