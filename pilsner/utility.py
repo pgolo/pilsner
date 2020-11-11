@@ -30,6 +30,14 @@ class Utility():
         """Destructor."""
         pass
 
+    def __enter__(self):
+        """Enter `with`."""
+        return self
+
+    def __exit__(self, ex_type, ex_value, ex_traceback):
+        """Exit `with`."""
+        pass
+
     def push_message(self, message, callback_function):
         """Passes message to callback_function.
 
@@ -117,6 +125,29 @@ class Utility():
             del subtrie[model.ENTITY_KEY]
             return len(subtrie) + 1, True
 
+    def ignore_node(self, model, label):
+        """Looks up *label* in a given *model* and hooks a special tag to the leaf in case *label* is found.
+        Tagged label will not be racognized by Utility.spot_entities() function.
+
+        Args:
+            Model *model*: Model instance to look up
+            str *label*: string to tag
+        """
+        label_length = int(len(label))
+        string_so_far = ''
+        character_index = 0
+        for section in model[model.DICTIONARY_KEY]:
+            content = section[model.CONTENT_KEY]
+            for tokenizer_key in content:
+                trie = content[tokenizer_key]
+                for character_index in range(0, label_length):
+                    string_so_far += label[character_index]
+                    if string_so_far in trie:
+                        trie = trie[string_so_far]
+                        string_so_far = ''
+                if character_index == label_length - 1 and model.ENTITY_KEY in trie and string_so_far == '':
+                    trie[model.IGNORE_KEY] = []
+
     def make_recognizer(self, model, filename, specs, word_separator, item_limit, compressed, column_separator, column_enclosure, tokenizer_option):
         """Reads tab-delimited text file, populates dict objects representing tries, and fills database associated with a given Model instance according to provided specs.
         Returns tuple(list *tries*, dict *line_numbers*) where *tries* are populated dicts representing tries, *line_numbers* is dict that maps line numbers from the text file to internally generated entity IDs.
@@ -141,10 +172,11 @@ class Utility():
         increment_bytes = int(total_bytes / 100) if total_bytes > 100 else total_bytes
         this_progress_position = 0
         last_progress_position = 0
-        rows = model.cursor.execute('select 0 where not exists (select name from sqlite_master where type = \'table\' and name = \'attrs\');')
-        for _ in rows:
-            model.create_recognizer_schema(model.cursor)
-            break
+        if model.connection is not None:
+            rows = model.cursor.execute('select 0 where not exists (select name from sqlite_master where type = \'table\' and name = \'attrs\');')
+            for _ in rows:
+                model.create_recognizer_schema(model.cursor)
+                break
         with open(filename, mode='r', encoding='utf8') as f:
             ret = []
             line_count = 0
@@ -173,8 +205,9 @@ class Utility():
             packed = model.pack_trie(trie, compressed)
             ret.append(packed)
             self.logger('Lines read: %d' % (line_count))
-        model.connection.commit()
-        model.cursor.execute('create index ix_attrs_n_attr_name_attr_value on attrs (n asc, attr_name asc, attr_value asc);')
+        if model.connection is not None:
+            model.connection.commit()
+            model.cursor.execute('create index ix_attrs_n_attr_name_attr_value on attrs (n asc, attr_name asc, attr_value asc);')
         self.logger('Recognizer completed.')
         return ret, line_numbers
 
@@ -301,7 +334,7 @@ class Utility():
         unpacked_trie_pointer[radix[-1:]] = packed_trie[radix]
         return unpacked_trie
 
-    def unpack_attributes(self, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
+    def unpack_attributes(self, model, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query):
         """Loads attributes for internal IDs found in a leaf of a trie from a model's database using associated sqlite3.connect.cursor object.
         Returns dict object that maps internal IDs with attributes.
 
@@ -314,6 +347,14 @@ class Utility():
             str *attrs_out_query*: part of SQL query that specifies which attributes to eventually return
         """
         attributes = {}
+        if cur is None:
+            for n in leaf_ids:
+                if n not in attributes:
+                    attributes[n] = {}
+                if 'ID' not in attributes[n]:
+                    attributes[n]['ID'] = []
+                attributes[n]['ID'].append(model[model.INTERNAL_ID_KEY][n])
+            return attributes
         include_attrs = set()
         exclude_attrs = set()
         for n in leaf_ids:
@@ -349,10 +390,11 @@ class Utility():
             bint *process_exclude*: whether use *exclude_query* at all
             str *attrs_out_query*: part of SQL query that specifies which attributes to eventually return
         """
-        trie_leaf[model.ATTRS_KEY] = self.unpack_attributes(cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
-        if int(len(trie_leaf[model.ATTRS_KEY])) == 0:
+        this_trie_leaf = dict(trie_leaf)
+        this_trie_leaf[model.ATTRS_KEY] = self.unpack_attributes(model, cur, trie_leaf[model.ENTITY_KEY], include_query, exclude_query, process_exclude, attrs_out_query)
+        if int(len(this_trie_leaf[model.ATTRS_KEY])) == 0:
             return {}
-        return trie_leaf
+        return this_trie_leaf
 
     def spot_entities(self, model, source_string, normalizer_name, include_query='', exclude_query='', process_exclude=False, attrs_out_query='', progress_from=0, progress_to=100):
         """Zooms through a string, finds boundaries of synonyms stored in model's trie, and pulls associated attributes from the storage.
@@ -387,7 +429,7 @@ class Utility():
         rets = []
         this_progress_position = 0
         last_progress_position = 0
-        total_tries = len(model[model.DICTIONARY_KEY])
+        total_tries = int(len(model[model.DICTIONARY_KEY]))
         if total_tries == 0:
             return rets
         progress_share = progress_to - progress_from
@@ -421,7 +463,7 @@ class Utility():
                 else: # reading entity
                     end_index = current_index
                     character = source_string[current_index]
-                    if character == word_separator and model.ENTITY_KEY in subtrie:
+                    if character == word_separator and model.ENTITY_KEY in subtrie and model.IGNORE_KEY not in subtrie:
                         found_object = self.check_attrs(model, subtrie, model.cursor, include_query, exclude_query, process_exclude, attrs_out_query)
                         if found_object:
                             identified = found_object[model.ENTITY_KEY], found_object[model.ATTRS_KEY]
@@ -434,7 +476,7 @@ class Utility():
                     else:
                         #if everything_or_nothing and current_index == total_length: return []
                         if character == word_separator or current_index == total_length: # - 1:
-                            if model.ENTITY_KEY in subtrie:
+                            if model.ENTITY_KEY in subtrie and model.IGNORE_KEY not in subtrie:
                                 found_object = self.check_attrs(model, subtrie, model.cursor, include_query, exclude_query, process_exclude, attrs_out_query)
                                 if found_object:
                                     identified = found_object[model.ENTITY_KEY], found_object[model.ATTRS_KEY]
@@ -463,7 +505,7 @@ class Utility():
                         start_index = current_index
                         subtrie = trie[model.CONTENT_KEY][normalizer_name]
                 current_index += 1
-            if model.ENTITY_KEY in subtrie:
+            if model.ENTITY_KEY in subtrie and model.IGNORE_KEY not in subtrie:
                 found_object = self.check_attrs(model, subtrie, model.cursor, include_query, exclude_query, process_exclude, attrs_out_query)
                 if found_object:
                     identified = found_object[model.ENTITY_KEY], found_object[model.ATTRS_KEY]

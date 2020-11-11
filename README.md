@@ -34,7 +34,7 @@ class provides storage for the dictionary and string normalization rules, as
 well as low-level methods for populating this storage. `Utility` class provides
 high-level methods for storing and retrieving data to/from `Model` instance.
 
-![Diagram](misc/pilsner-diagram.svg)
+![Diagram](https://github.com/pgolo/pilsner/blob/master/misc/pilsner-diagram.svg)
 
 ## 4. Usage
 
@@ -61,6 +61,12 @@ disk:
 
 ```python
 m = pilsner.Model(storage_location=':memory:')
+```
+
+- To create empty model that does not store any attributes in a database at all:
+
+```python
+m = pilsner.Model(simple=True)
 ```
 
 > If database is created in memory, the model cannot be later saved on disk
@@ -205,7 +211,8 @@ m.save('path/to/model_name')
 
 - The snippet above will write the following files:
   - `path/to/model_name.attributes`: database with attributes (fields from the
-  dictionary that are not synonyms);
+  dictionary that are not synonyms) - will only be written if `Model` instance
+  is not created with `simple=True` parameter;
   - `path/to/model_name.keywords`: keywords used for disambiguation;
   - `path/to/model_name.normalizers`: string normalization units;
   - `path/to/model_name.0.dictionary`: trie with synonyms;
@@ -230,7 +237,10 @@ m.load('path/to/model_name')
 ```
 
 - In both cases, the program will look for the following files:
-  - `path/to/model_name.attributes`: database with attributes (fields from the dictionary that are not synonyms);
+  - `path/to/model_name.attributes`: database with attributes (fields from the
+  dictionary that are not synonyms) - if not found, `Model` instance will work
+  as if it is initialized with `simple=True` parameter, meaning no attributes
+  other than primary IDs could be processed;
   - `path/to/model_name.keywords`: keywords used for disambiguation;
   - `path/to/model_name.normalizers`: string normalization units;
   - `path/to/model_name.<N>.dictionary`: tries with synonyms (`<N>` being
@@ -253,8 +263,21 @@ parsed = r.parse(
 - The output will be dict object where keys are tuples for location of spotted
 entity in a string (begin, end) and values are dicts for attributes that are
 associated with identified entity (`{'attribute_name': {attribute_values}}`).
+- To ignore entity by its label rather than some of its attributes, compiled
+model can be adjusted using `pilsnet.Utility.ignore_node()` method:
+
+```python
+# Assuming m is pilsner.Model instance, r is pilsner.Utility instance
+r.ignore_node(
+  model=m,
+  label='irrelevant substring'
+)
+# substring 'irrelevant substring' will not be found by pilsner.Utility.parse()
+# even if it is present in the model
+```
+
 - For details about optional parameters, see comments in the code -
-`pilsner.Utility.parse` function).
+`pilsner.Utility.parse()` function.
 
 ## 5. Example
 

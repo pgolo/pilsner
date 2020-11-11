@@ -54,6 +54,21 @@ cdef class Utility():
     )
 
     @cython.locals(
+        label_length=cython.int,
+        string_so_far=cython.str,
+        section=cython.dict,
+        content=cython.dict,
+        tokenizer_key=cython.str,
+        trie=cython.dict,
+        character_index=cython.int
+    )
+    cpdef ignore_node(
+        self,
+        model,
+        str label
+    )
+
+    @cython.locals(
         entity_ids=cython.dict,
         line_numbers=cython.dict,
         total_bytes=cython.int,
@@ -163,6 +178,7 @@ cdef class Utility():
     )
     cpdef dict unpack_attributes(
         self,
+        model,
         cur,
         list lead_ids,
         str include_query,
@@ -171,6 +187,9 @@ cdef class Utility():
         str attrs_out_query
     )
 
+    @cython.locals(
+        this_trie_leaf=cython.dict
+    )
     cpdef dict check_attrs(
         self,
         model,

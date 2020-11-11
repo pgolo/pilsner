@@ -1,1 +1,1 @@
-sic>=1.0.4 --no-binary sic
+sic>=1.2.0 --no-binary sic

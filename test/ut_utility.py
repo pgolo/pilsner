@@ -6,11 +6,14 @@ class TestUtility(unittest.TestCase):
     def setUp(self):
         self.utility = pilsner.Utility()
         self.model = pilsner.Model()
+        self.simple_model = pilsner.Model(simple=True)
 
     def tearDown(self):
         del(self.utility)
         self.model.destroy()
         del(self.model)
+        self.simple_model.destroy()
+        del(self.simple_model)
 
     def compile_test_model(self):
         fields = [
@@ -20,6 +23,23 @@ class TestUtility(unittest.TestCase):
             {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
         ]
         model = self.model
+        model.add_normalizer('t1', 'test/assets/tokenizer1.xml')
+        model.add_normalizer('t2', 'test/assets/tokenizer2.xml')
+        model.normalizer_map = {
+            'tokenizer1': 't1',
+            'tokenizer2': 't2'
+        }
+        compiled = self.utility.compile_model(model=model, filename='test/assets/sample_dictionary.txt', fields=fields, word_separator=' ', column_separator='\t', column_enclosure='', include_keywords=True)
+        return compiled, model
+
+    def compile_test_simple_model(self):
+        fields = [
+            {'name': 'normalizer', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': True, 'value_flag': False},
+            {'name': 'entity_id', 'include': True, 'delimiter': None, 'id_flag': True, 'normalizer_flag': False, 'value_flag': False},
+            {'name': 'label', 'include': True, 'delimiter': None, 'id_flag': False, 'normalizer_flag': False, 'value_flag': True},
+            {'name': 'some_attribute', 'include': True, 'delimiter': ',', 'id_flag': False, 'normalizer_flag': False, 'value_flag': False}
+        ]
+        model = self.simple_model
         model.add_normalizer('t1', 'test/assets/tokenizer1.xml')
         model.add_normalizer('t2', 'test/assets/tokenizer2.xml')
         model.normalizer_map = {
@@ -83,14 +103,14 @@ class TestUtility(unittest.TestCase):
         test_trie = {}
         self.utility.insert_node(label='the synonym', label_id=1, entity_id=10, subtrie=test_trie, specs=specs, columns=['', '', '', ''], model=model)
         self.utility.insert_node('the synthesis', 2, 20, test_trie, specs, ['', '', '', ''], model)
-        expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {'~i': [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {'~i': [2]}}}}}}}}}}}}}}
+        expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {model.ENTITY_KEY: [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {model.ENTITY_KEY: [2]}}}}}}}}}}}}}}
         assert test_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(test_trie))
 
     def test_remove_node(self):
-        test_trie = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {'~i': [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {'~i': [1]}}}}}}}}}}}}}}
         model = self.model
+        test_trie = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'o': {'n': {'y': {'m': {model.ENTITY_KEY: [1]}}}}, 't': {'h': {'e': {'s': {'i': {'s': {model.ENTITY_KEY: [1]}}}}}}}}}}}}}}
         self.utility.remove_node(model=model, label='the synonym', subtrie=test_trie)
-        expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'t': {'h': {'e': {'s': {'i': {'s': {'~i': [1]}}}}}}}}}}}}}}
+        expected = {'t': {'h': {'e': {' ': {'s': {'y': {'n': {'t': {'h': {'e': {'s': {'i': {'s': {model.ENTITY_KEY: [1]}}}}}}}}}}}}}}
         assert test_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(test_trie))
 
     def test_make_recognizer(self):
@@ -196,7 +216,7 @@ class TestUtility(unittest.TestCase):
                 model.COMPRESSED_KEY: 1,
                 model.TOKENIZER_OPTION_KEY: 0,
                 model.WORD_SEPARATOR_KEY: ' ',
-                model.CONTENT_KEY: {'t1': {'a': {'wesome white refrigera': {' ': {'tors': {'~i': [0]}}, 't': {'or': {'x': {'~i': [1]}, '~i': [4]}}}}}, 't2': {'c': {'onflicting refrigerator': {'~i': [2, 8]}}, 'a': {'w': {'e': {'some refrigerators': {'~i': [3]}}, 'w': {'some refrigerator': {'~i': [5]}}}}, 'i': {'t': {'~i': [6]}}, 'o': {'~i': [7]}}}
+                model.CONTENT_KEY: {'t1': {'a': {'wesome white refrigera': {' ': {'tors': {model.ENTITY_KEY: [0]}}, 't': {'or': {'x': {model.ENTITY_KEY: [1]}, model.ENTITY_KEY: [4]}}}}}, 't2': {'c': {'onflicting refrigerator': {model.ENTITY_KEY: [2, 8]}}, 'a': {'w': {'e': {'some refrigerators': {model.ENTITY_KEY: [3]}}, 'w': {'some refrigerator': {model.ENTITY_KEY: [5]}}}}, 'i': {'t': {model.ENTITY_KEY: [6]}}, 'o': {model.ENTITY_KEY: [7]}}}
             }
         ]
         expected_keywords = {model.CONTENT_KEY: {0: {'refrigerator', 'tors', 'it', 'refrigera', 'white', 'conflicting', 'awesome', 'refrigeratorx'}, 1: {'refrigerator', 'refrigerators', 'white', 'o', 'conflicting', 'awwsome', 'awesome'}}, model.INTERNAL_ID_KEY: {0: 0, 1: 0, 2: 0, 3: 1, 4: 1, 5: 1, 6: 0, 7: 1, 8: 1}}
@@ -206,7 +226,7 @@ class TestUtility(unittest.TestCase):
     def test_unpack_trie(self):
         _, model = self.compile_test_model()
         packed_trie = {'wesome white refrigera': {' ': {'tors': {model.ENTITY_KEY: [0]}}, 't': {'or': {'x': {model.ENTITY_KEY: [1]}, model.ENTITY_KEY: [4]}}}}
-        expected = {'w': {'e': {'s': {'o': {'m': {'e': {' ': {'w': {'h': {'i': {'t': {'e': {' ': {'r': {'e': {'f': {'r': {'i': {'g': {'e': {'r': {'a': {' ': {'tors': {'~i': [0]}}, 't': {'or': {'x': {'~i': [1]}, '~i': [4]}}}}}}}}}}}}}}}}}}}}}}}}}
+        expected = {'w': {'e': {'s': {'o': {'m': {'e': {' ': {'w': {'h': {'i': {'t': {'e': {' ': {'r': {'e': {'f': {'r': {'i': {'g': {'e': {'r': {'a': {' ': {'tors': {model.ENTITY_KEY: [0]}}, 't': {'or': {'x': {model.ENTITY_KEY: [1]}, model.ENTITY_KEY: [4]}}}}}}}}}}}}}}}}}}}}}}}}}
         unpacked_trie = self.utility.unpack_trie(model=model, packed_trie=packed_trie, compressed=True)
         assert unpacked_trie == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(unpacked_trie))
 
@@ -219,7 +239,7 @@ class TestUtility(unittest.TestCase):
         process_exclude = False
         attrs_out_query = ''
         expected = {8: {'entity_id': ['entity1'], 'normalizer': ['tokenizer2'], 'some_attribute': ['A', 'B', 'C']}}
-        attributes = self.utility.unpack_attributes(cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query)
+        attributes = self.utility.unpack_attributes(model, cur, leaf_ids, include_query, exclude_query, process_exclude, attrs_out_query)
         assert attributes == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(attributes))
 
     def test_check_attrs(self):
@@ -391,6 +411,31 @@ class TestUtility(unittest.TestCase):
         output = self.utility.parse(model, source_string)
         assert output == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(output))
 
+    def test_ignore_node(self):
+        _, model = self.compile_test_model()
+        source_string = 'this is awesome white refrigerator hey hey'
+        recognized_normally = self.utility.parse(model, source_string)
+        expected_normally = {(8, 34): {'entity_id': {'entity1'}, 'normalizer': {'tokenizer1'}, 'some_attribute': {'C', 'A', 'B'}}}
+        self.utility.ignore_node(model, 'awesome white refrigerator')
+        recognized_after_exclusion = self.utility.parse(model, source_string)
+        expected_after_exclusion = {}
+        assert recognized_normally == expected_normally, '\nExpected\n%s\nGot\n%s' % (str(expected_normally), str(recognized_normally))
+        assert recognized_after_exclusion == expected_after_exclusion, '\nExpected\n%s\nGot\n%s' % (str(expected_after_exclusion), str(recognized_after_exclusion))
+
+    def test_simple_model(self):
+        _, model = self.compile_test_simple_model()
+        source_string = 'this is awesome white refrigerator hey hey'
+        expected = {(8, 34): {'ID': {'entity1'}}}
+        parsed = self.utility.parse(model, source_string)
+        assert parsed == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(parsed))
+
+    def test_simple_model_reserved_chars(self):
+        _, model = self.compile_test_simple_model()
+        source_string = 'this is awesome\x03 white refrigerator hey hey'
+        expected = {(8, 35): {'ID': {'entity1'}}}
+        parsed = self.utility.parse(model, source_string)
+        assert parsed == expected, '\nExpected\n%s\nGot\n%s' % (str(expected), str(parsed))
+
 if __name__ == '__main__':
     sys.path.insert(0, '')
     import pilsner # pylint: disable=E0611,F0401
@@ -398,9 +443,5 @@ if __name__ == '__main__':
     try:
         import bin as pilsner # pylint: disable=E0611,F0401
         unittest.main()
-        # x = TestUtility()
-        # x.setUp()
-        # x.compile_test_model()
-        # x.tearDown()
     except ModuleNotFoundError:
         print('Could not import module from /bin, test skipped.')

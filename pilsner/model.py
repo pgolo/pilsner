@@ -10,21 +10,26 @@ import shutil
 class Model(dict):
     """This class is a dict that stores tries and metadata, and provides functions and methods associated with the storage."""
 
-    def __init__(self, filename='', storage_location='', debug_mode=False, verbose_mode=False):
+    def __init__(self, filename='', storage_location='', simple=False, debug_mode=False, verbose_mode=False):
         """Creates Model instance.
 
         Args:
             str *filename*: if provided, loads model from disk, see load() method
-            str *storage_location*:
+            str *storage_location*: location for SQLite database that stores attributes (when blank, the database will be stored on disk in a file with randomized name)
+            bool *simple*: when True, attributes will not be stored or processed, only labels and primary IDs (defaulr False)
+            bool *debug_mode*: increase verbosity (default False)
+            bool *verbose_mode*: increase verbosity even more (default False)
         """
         self.CONTENT_KEY = '~content'
         self.SPECS_KEY = '~specs'
         self.COMPRESSED_KEY = '~compressed'
         self.TOKENIZER_OPTION_KEY = '~tokenizer_option'
         self.WORD_SEPARATOR_KEY = '~word_separator'
-        self.ENTITY_KEY = '~i'
-        self.ATTRS_KEY = '~p'
-        self.INTERNAL_ID_KEY = '~iid'
+        self.IGNORE_KEY = '\x07' # BEL, formerly '~x'
+        self.ENTITY_KEY = '\x03' # ETX, formerly '~i'
+        self.ATTRS_KEY = '\x05' # ENQ, formerly '~p'
+        self.RESERVED_CHARACTERS = set([self.IGNORE_KEY, self.ENTITY_KEY, self.ATTRS_KEY])
+        self.INTERNAL_ID_KEY = '~internal_id_map'
         self.DICTIONARY_KEY = '~dictionary'
         self.KEYWORDS_KEY = '~keywords'
         self.NORMALIZER_KEY = '~normalization'
@@ -49,11 +54,16 @@ class Model(dict):
         self[self.DEFAULT_NORMALIZER_KEY] = ''
         self[self.DICTIONARY_KEY] = []
         self[self.KEYWORDS_KEY] = {}
+        self[self.INTERNAL_ID_KEY] = {}
         self[self.DATASOURCE_KEY] = self.DEFAULT_DATASOURCE
         self[self.WORD_SEPARATOR_KEY] = self.DEFAULT_WORD_SEPARATOR
         self[self.TOKENIZER_OPTION_KEY] = self.DEFAULT_TOKENIZER_OPTION
-        self.connection = sqlite3.connect(self[self.DATASOURCE_KEY])
-        self.cursor = self.connection.cursor()
+        if not simple:
+            self.connection = sqlite3.connect(self[self.DATASOURCE_KEY])
+            self.cursor = self.connection.cursor()
+        else:
+            self.connection = None
+            self.cursor = None
         self.normalizer_map = {}
         self.sic_builder = sic.Builder(debug_mode=debug_mode, verbose_mode=verbose_mode)
         if filename != '':
@@ -61,7 +71,8 @@ class Model(dict):
 
     def destroy(self):
         """Closes connection, removes temporary database."""
-        self.connection.close()
+        if self.connection is not None:
+            self.connection.close()
         if os.path.exists(self.DEFAULT_DATASOURCE):
             os.remove(self.DEFAULT_DATASOURCE)
 
@@ -71,6 +82,14 @@ class Model(dict):
             self.destroy()
         except:
             pass
+
+    def __enter__(self):
+        """Enter `with`."""
+        return self
+
+    def __exit__(self, ex_type, ex_value, ex_traceback):
+        """Exit `with`."""
+        self.destroy()
 
     def save(self, filename):
         """Saves model to disk.
@@ -86,14 +105,15 @@ class Model(dict):
             filename.attributes
         """
         try:
-            assert os.path.exists(self[self.DATASOURCE_KEY]), 'Cannot find temporary database on disk'
+            assert self.connection is None or os.path.exists(self[self.DATASOURCE_KEY]), 'Cannot find temporary database on disk'
             assert len(self[self.DICTIONARY_KEY]) > 0, 'Model is empty, nothing to save'
         except Exception as e:
             self.destroy()
             raise e
         logging.debug('Saving model "%s"' % (filename))
-        self.cursor.close()
-        self.connection.close()
+        if self.connection is not None:
+            self.cursor.close()
+            self.connection.close()
         normalizers = {
             self.DEFAULT_NORMALIZER_KEY: self[self.DEFAULT_NORMALIZER_KEY],
             self.WORD_SEPARATOR_KEY: self[self.WORD_SEPARATOR_KEY],
@@ -110,10 +130,13 @@ class Model(dict):
         with open('%s.keywords' % (filename), mode='wb') as f:
             pickle.dump(self[self.KEYWORDS_KEY], f)
             logging.debug('Saved "%s"' % ('%s.keywords' % (filename)))
-        shutil.copyfile(self[self.DATASOURCE_KEY], '%s.attributes' % (filename))
-        logging.debug('Saved "%s"' % ('%s.attributes' % (filename)))
-        self.connection = sqlite3.connect(self[self.DATASOURCE_KEY])
-        self.cursor = self.connection.cursor()
+        if self.connection is not None:
+            shutil.copyfile(self[self.DATASOURCE_KEY], '%s.attributes' % (filename))
+            logging.debug('Saved "%s"' % ('%s.attributes' % (filename)))
+            self.connection = sqlite3.connect(self[self.DATASOURCE_KEY])
+            self.cursor = self.connection.cursor()
+        else:
+            logging.warning('Attributes database not found, model has been saved as "simple"')
         logging.debug('Saved "%s"' % (filename))
         return True
 
@@ -131,8 +154,9 @@ class Model(dict):
         """
         logging.debug('Loading model "%s"' % (filename))
         self[self.DATASOURCE_KEY] = '%s.attributes' % (filename)
-        self.cursor.close()
-        self.connection.close()
+        if self.connection is not None:
+            self.cursor.close()
+            self.connection.close()
         with open('%s.normalizers' % (filename), mode='rb') as f:
             normalizers = pickle.load(f)
         for normalizer_name in normalizers[self.NORMALIZER_KEY]:
@@ -153,8 +177,13 @@ class Model(dict):
             self[self.KEYWORDS_KEY] = keywords
         logging.debug('Loaded "%s"' % ('%s.keywords' % (filename)))
         self[self.DATASOURCE_KEY] = '%s.attributes' % (filename)
-        self.connection = sqlite3.connect(self[self.DATASOURCE_KEY])
-        self.cursor = self.connection.cursor()
+        if os.path.exists(self[self.DATASOURCE_KEY]):
+            self.connection = sqlite3.connect(self[self.DATASOURCE_KEY])
+            self.cursor = self.connection.cursor()
+        else:
+            self.connection = None
+            self.cursor = None
+            logging.warning('Could not load attributes, model is in "simple" mode')
         return True
 
     def add_normalizer(self, normalizer_name, filename, default=False):
@@ -167,6 +196,14 @@ class Model(dict):
         """
         logging.debug('Adding normalizer "%s" from "%s"' % (normalizer_name, filename))
         normalizer = self.sic_builder.build_normalizer(filename)
+        normalizer.make_tokenizer(
+            ''.join([rule.decode() for rule in [
+                sic.ReplaceCharacter(self.IGNORE_KEY, ''),
+                sic.ReplaceCharacter(self.ENTITY_KEY, ''),
+                sic.ReplaceCharacter(self.ATTRS_KEY, '')]
+            ]),
+            update=True
+        )
         self[self.NORMALIZER_KEY][normalizer_name] = normalizer
         self.normalizer_map[normalizer_name] = normalizer_name
         if len(self[self.NORMALIZER_KEY]) == 1 or default:
@@ -180,9 +217,12 @@ class Model(dict):
         Args:
             sqlite3.connect.cursor *cursor*: cursor to use for throwing queries
         """
-        logging.debug('Creating schema for permanent storage')
-        cursor.execute('create table attrs (n integer, iid integer, attr_name text, attr_value text);')
-        logging.debug('Created schema for permanent storage')
+        if cursor is not None:
+            logging.debug('Creating schema for permanent storage')
+            cursor.execute('create table attrs (n integer, iid integer, attr_name text, attr_value text);')
+            logging.debug('Created schema for permanent storage')
+        else:
+            logging.debug('No cursor is provided, schema is not created')
         return True
 
     def pack_subtrie(self, trie, compressed, prefix):
@@ -255,13 +295,16 @@ class Model(dict):
         if self.ENTITY_KEY not in subtrie:
             subtrie[self.ENTITY_KEY] = []
         subtrie[self.ENTITY_KEY].append(line_number)
-        for k in specs['fields']:
-            if specs['fields'][k][3]:
-                continue
-            if not specs['fields'][k][1]:
-                self.cursor.execute('insert into attrs (n, iid, attr_name, attr_value) select ?, ?, ?, ?;', (line_number, internal_id, k, columns[specs['fields'][k][0]]))
-            else:
-                _ = [self.cursor.execute('insert into attrs (n, iid, attr_name, attr_value) select ?, ?, ?, ?;', (line_number, internal_id, k, s)) for s in set(columns[specs['fields'][k][0]].split(specs['fields'][k][1]))]
+        if self.cursor is not None:
+            for k in specs['fields']:
+                if specs['fields'][k][3]:
+                    continue
+                if not specs['fields'][k][1]:
+                    self.cursor.execute('insert into attrs (n, iid, attr_name, attr_value) select ?, ?, ?, ?;', (line_number, internal_id, k, columns[specs['fields'][k][0]]))
+                else:
+                    _ = [self.cursor.execute('insert into attrs (n, iid, attr_name, attr_value) select ?, ?, ?, ?;', (line_number, internal_id, k, s)) for s in set(columns[specs['fields'][k][0]].split(specs['fields'][k][1]))]
+        else:
+            self[self.INTERNAL_ID_KEY][line_number] = columns[specs['id'][0]]
 
     def get_dictionary_line(self, specs, entity_ids, line_numbers, line_number, line, column_separator, column_enclosure):
         """Extracts values of columns in a file and associates them with internal entity ID.
