@@ -19,7 +19,7 @@ structure and identify any of stored synonyms in a string.
 pip install pilsner
 ```
 
-`pilsner` is tested in Python 3.6, 3.7, and 3.8.
+`pilsner` is tested in Python 3.6, 3.7, 3.8, and 3.9.
 
 The only dependency is `sic` package. While it can be automatically installed
 at the time of `pilsner` installation, manual installation of `sic` beforehand
