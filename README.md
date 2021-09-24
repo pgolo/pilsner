@@ -152,7 +152,7 @@ that:
   - `field['delimiter']` is a string that is supposed to split single cell into
   list of values if the column holds concatenated lists rather than individual
   values;
-  - `field['id_flag]` is a boolean that must be set to `True` if the column is
+  - `field['id_flag']` is a boolean that must be set to `True` if the column is
   supposed to be used for grouping synonyms (generally, entity ID is such
   column), otherwise `False`;
   - `field['normalizer_flag']` is a boolean that must be set to `True` if the
